@@ -6,140 +6,263 @@ import (
 )
 
 type Cpu struct {
-	Registers *cpuRegisters
-	Memory    *MemoryBus
+	registers *cpuRegisters
+	memory    *MemoryBus
 
-	Halted         bool
-	MasterInterupt bool
+	halted         bool
+	masterInterupt bool
 }
 
 func NewCpu(bus *MemoryBus) *Cpu {
 	return &Cpu{
-		Registers: &cpuRegisters{
+		registers: &cpuRegisters{
 			PC: 0x100,
 			A:  0x01,
 		},
-		Memory:         bus,
-		MasterInterupt: true,
+		memory:         bus,
+		masterInterupt: true,
 	}
 }
 
 func (c *Cpu) Step() error {
-	if c.Halted {
+	if c.halted {
 		return nil
 	}
 
-	pc := c.Registers.PC
+	pc := c.registers.PC
 	opcode, instruction := c.fetchIsntruction()
-	data := c.fetchData(instruction)
+	data, destAddress := c.fetchData(instruction)
 
-	log.Printf("[PC: %X] %X => %v -- %X", pc, opcode, instruction, data)
-	return c.executeInstruction(instruction, data)
+	log.Printf("[PC: 0x%X] 0x%X => %v -- 0x%X", pc, opcode, instruction, data)
+	return c.executeInstruction(instruction, data, destAddress)
 }
 
 func (c *Cpu) readFromRegister(r RegisterType) uint16 {
 	switch r {
 	case RegisterTypeA:
-		return uint16(c.Registers.A)
+		return uint16(c.registers.A)
 	case RegisterTypeB:
-		return uint16(c.Registers.B)
+		return uint16(c.registers.B)
 	case RegisterTypeC:
-		return uint16(c.Registers.C)
+		return uint16(c.registers.C)
 	case RegisterTypeD:
-		return uint16(c.Registers.D)
+		return uint16(c.registers.D)
 	case RegisterTypeE:
-		return uint16(c.Registers.E)
+		return uint16(c.registers.E)
 	case RegisterTypeH:
-		return uint16(c.Registers.H)
+		return uint16(c.registers.H)
 	case RegisterTypeL:
-		return uint16(c.Registers.L)
+		return uint16(c.registers.L)
 	case RegisterTypeAF:
-		return uint16(c.Registers.F) | (uint16(c.Registers.A) << 8)
+		return uint16(c.registers.F) | (uint16(c.registers.A) << 8)
 	case RegisterTypeBC:
-		return uint16(c.Registers.C) | (uint16(c.Registers.B) << 8)
+		return uint16(c.registers.C) | (uint16(c.registers.B) << 8)
 	case RegisterTypeDE:
-		return uint16(c.Registers.E) | (uint16(c.Registers.D) << 8)
+		return uint16(c.registers.E) | (uint16(c.registers.D) << 8)
 	case RegisterTypeHL:
-		return uint16(c.Registers.L) | (uint16(c.Registers.H) << 8)
+		return uint16(c.registers.L) | (uint16(c.registers.H) << 8)
 	case RegisterTypeSP:
-		return c.Registers.SP
+		return c.registers.SP
 	case RegisterTypePC:
-		return c.Registers.PC
+		return c.registers.PC
 	}
 
 	// NB: not really possible but keeps the compiler happy
 	return 0
 }
 
+func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
+	switch r {
+	case RegisterTypeA:
+		c.registers.A = uint8(val & 0xFF)
+	case RegisterTypeB:
+		c.registers.B = uint8(val & 0xFF)
+	case RegisterTypeC:
+		c.registers.C = uint8(val & 0xFF)
+	case RegisterTypeD:
+		c.registers.D = uint8(val & 0xFF)
+	case RegisterTypeE:
+		c.registers.E = uint8(val & 0xFF)
+	case RegisterTypeH:
+		c.registers.H = uint8(val & 0xFF)
+	case RegisterTypeL:
+		c.registers.L = uint8(val & 0xFF)
+	case RegisterTypeAF:
+		c.registers.F = uint8(val & 0xFF)
+		c.registers.A = uint8(val >> 8)
+	case RegisterTypeBC:
+		c.registers.B = uint8(val & 0xFF)
+		c.registers.C = uint8(val >> 8)
+	case RegisterTypeDE:
+		c.registers.D = uint8(val & 0xFF)
+		c.registers.E = uint8(val >> 8)
+	case RegisterTypeHL:
+		c.registers.H = uint8(val & 0xFF)
+		c.registers.L = uint8(val >> 8)
+	case RegisterTypeSP:
+		c.registers.SP = val
+	case RegisterTypePC:
+		c.registers.PC = val
+	}
+}
+
 func (c *Cpu) fetchIsntruction() (uint8, CpuInstriction) {
-	opcode := c.Memory.Read(c.Registers.PC)
-	c.Registers.PC++
+	opcode := c.memory.Read(c.registers.PC)
+	c.registers.PC++
 
 	return opcode, CpuInstructions[opcode]
 }
 
-func (c *Cpu) fetchData(instruction CpuInstriction) uint16 {
-	var fetchedData uint16
-
-	switch instruction.AddressMode {
-	case AddressModeR:
-		fetchedData = c.readFromRegister(instruction.Register1)
-	case AddressModeR_N16:
-	case AddressModeR_R:
-	case AddressModeR_N8:
-		fetchedData = uint16(c.Memory.Read(c.Registers.PC))
-		c.Registers.PC++
-		emu_cycle(1)
-	case AddressModeR_MR:
-	case AddressModeR_HLI:
-	case AddressModeR_HLD:
-	case AddressModeR_A16:
-	case AddressModeR_A8:
-	case AddressModeN8:
-	case AddressModeN16:
-		fetchedData = uint16(c.Memory.Read(c.Registers.PC)) | (uint16(c.Memory.Read(c.Registers.PC+1)) << 8)
-		emu_cycle(2)
-		c.Registers.PC += 2
-	case AddressModeN16_R:
-	case AddressModeMR:
-	case AddressModeMR_N8:
-	case AddressModeMR_N16:
-	case AddressModeMR_R:
-	case AddressModeA8_R:
-	case AddressModeA16_R:
-	case AddressModeHLI_R:
-	case AddressModeHLD_R:
-	case AddressModeHL_SPR:
-	}
-
-	return fetchedData
+type CpuDestAddress struct {
+	Address uint16
 }
 
-func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16) error {
+func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuDestAddress) {
+	switch instruction.AddressMode {
+	case AddressModeR:
+		data = c.readFromRegister(instruction.Register1)
+
+	case AddressModeR_N16:
+		fallthrough
+	case AddressModeN16:
+		data = uint16(c.memory.Read(c.registers.PC)) | (uint16(c.memory.Read(c.registers.PC+1)) << 8)
+		emu_cycle(2)
+		c.registers.PC += 2
+	case AddressModeR_N8:
+		fallthrough
+	case AddressModeN8:
+		data = uint16(c.memory.Read(c.registers.PC))
+		c.registers.PC++
+		emu_cycle(1)
+	case AddressModeR_R:
+		data = c.readFromRegister(instruction.Register2)
+	case AddressModeMR_R:
+		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
+		data = c.readFromRegister(instruction.Register2)
+		if instruction.Register1 == RegisterTypeC {
+			destAddr.Address |= 0xFF00
+		}
+	case AddressModeR_MR:
+		address := c.readFromRegister(instruction.Register2)
+		if instruction.Register2 == RegisterTypeC {
+			address |= 0xFF00
+		}
+		data = uint16(c.memory.Read(address))
+		emu_cycle(1)
+	case AddressModeR_A8:
+		data = uint16(c.memory.Read(c.registers.PC))
+		c.registers.PC++
+		emu_cycle(1)
+	case AddressModeA8_R:
+		destAddr = &CpuDestAddress{uint16(c.memory.Read(c.registers.PC)) | 0xFF00}
+		c.registers.PC++
+		data = c.readFromRegister(instruction.Register2)
+		emu_cycle(1)
+	case AddressModeMR:
+		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
+	case AddressModeMR_N8:
+		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
+		data = uint16(c.memory.Read(c.registers.PC))
+		c.registers.PC++
+		emu_cycle(1)
+	case AddressModeMR_N16:
+		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
+		data = uint16(c.memory.Read(c.registers.PC)) | (uint16(c.memory.Read(c.registers.PC+1)) << 8)
+		c.registers.PC += 2
+		emu_cycle(1)
+	case AddressModeR_HLI:
+		hl := c.readFromRegister(RegisterTypeHL)
+		data = uint16(c.memory.Read(hl))
+		emu_cycle(1)
+		c.writeToRegister(RegisterTypeHL, hl+1)
+	case AddressModeR_HLD:
+		hl := c.readFromRegister(RegisterTypeHL)
+		data = uint16(c.memory.Read(hl))
+		emu_cycle(1)
+		c.writeToRegister(RegisterTypeHL, hl-1)
+	case AddressModeHLI_R:
+		hl := c.readFromRegister(RegisterTypeHL)
+		destAddr = &CpuDestAddress{uint16(c.memory.Read(hl))}
+		c.writeToRegister(RegisterTypeHL, hl+1)
+		data = c.readFromRegister(instruction.Register2)
+	case AddressModeHLD_R:
+		hl := c.readFromRegister(RegisterTypeHL)
+		destAddr = &CpuDestAddress{uint16(c.memory.Read(hl))}
+		c.writeToRegister(RegisterTypeHL, hl-1)
+		data = c.readFromRegister(instruction.Register2)
+	case AddressModeHL_SPR:
+		data = uint16(c.memory.Read(c.registers.PC))
+		emu_cycle(1)
+		c.registers.PC++
+	case AddressModeA16_R:
+		destAddr = &CpuDestAddress{
+			uint16(c.memory.Read(c.registers.PC)) | (uint16(c.memory.Read(c.registers.PC+1)) << 8),
+		}
+		emu_cycle(2)
+		c.registers.PC += 2
+		data = c.readFromRegister(instruction.Register2)
+
+	case AddressModeR_A16:
+		addr := uint16(c.memory.Read(c.registers.PC)) | (uint16(c.memory.Read(c.registers.PC+1)) << 8)
+		data = uint16(c.memory.Read(addr))
+		c.registers.PC += 2
+		emu_cycle(3)
+	}
+
+	return data, destAddr
+}
+
+func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) error {
 	switch instruction.Type {
 	case InstructionTypeJP:
-		if c.Registers.CheckFlag(instruction.Condition) {
-			c.Registers.PC = data
+		if c.registers.CheckFlag(instruction.Condition) {
+			c.registers.PC = data
 			emu_cycle(1)
 		}
 	case InstructionTypeXOR:
 		var isZero uint8
-		c.Registers.A ^= uint8(data)
-		if c.Registers.A == 0 {
+		c.registers.A ^= uint8(data)
+		if c.registers.A == 0 {
 			isZero = 1
 		}
-		c.Registers.SetFlags(isZero, 0, 0, 0)
+		c.registers.SetFlags(isZero, 0, 0, 0)
 	case InstructionTypeNOP:
 		return nil
 	case InstructionTypeDI:
-		c.MasterInterupt = false
+		c.masterInterupt = false
 	case InstructionTypeEI:
-		c.MasterInterupt = true
-
+		c.masterInterupt = true
 	case InstructionTypeNone:
 		return errors.New("instruction not defined")
 	case InstructionTypeLD:
-		fallthrough
+		if nil != destAddress {
+			if instruction.Register2 >= RegisterTypeAF {
+				c.memory.Write16(destAddress.Address, data)
+				emu_cycle(1)
+			} else {
+				c.memory.Write(destAddress.Address, uint8(data&0xFF))
+			}
+			return nil
+		}
+
+		if instruction.AddressMode == AddressModeHL_SPR {
+			var hflag, cflag uint8
+			if c.readFromRegister(instruction.Register2)&0xF+data&0xF >= 0x10 {
+				hflag = 1
+			}
+			if c.readFromRegister(instruction.Register2)&0xFF+data&0xFF >= 0x100 {
+				cflag = 1
+			}
+			c.registers.SetFlags(0, 0, hflag, cflag)
+			c.writeToRegister(
+				instruction.Register1,
+				c.readFromRegister(instruction.Register2)+data,
+			)
+
+			return nil
+		}
+
+		c.writeToRegister(instruction.Register1, data)
 	case InstructionTypeINC:
 		fallthrough
 	case InstructionTypeDEC:
