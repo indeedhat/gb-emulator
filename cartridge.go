@@ -32,6 +32,14 @@ func LoadCartridge(path string) (*Cartridge, error) {
 	return &c, nil
 }
 
+func (c *Cartridge) Read(address uint16) byte {
+	return c.Data[address]
+}
+
+func (c *Cartridge) Write(address uint16, value byte) {
+	panic("not implemented")
+}
+
 type CartHeader struct {
 	// 0x0100 - 0x0103
 	EntryPoint [4]byte
