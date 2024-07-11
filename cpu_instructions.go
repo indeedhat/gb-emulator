@@ -1,5 +1,7 @@
 package main
 
+// https://gbdev.io/gb-opcodes/optables/
+
 import "fmt"
 
 type InstructionType byte
@@ -95,7 +97,6 @@ const (
 	AddressModeR_A8
 	AddressModeN8
 	AddressModeN16
-	AddressModeN16_R
 	AddressModeMR
 	AddressModeMR_N8
 	AddressModeMR_N16

@@ -37,7 +37,7 @@ func (c *Cartridge) Read(address uint16) byte {
 }
 
 func (c *Cartridge) Write(address uint16, value byte) {
-	panic("not implemented")
+	panic("cart.write not implemented")
 }
 
 type CartHeader struct {
