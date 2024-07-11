@@ -2,15 +2,15 @@ package main
 
 import (
 	"log"
-
-	"github.com/davecgh/go-spew/spew"
+	"os"
 )
 
 func main() {
-	cart, err := LoadCartridge("roms/Pokemon Red.gb")
-	if err != nil {
-		log.Fatal(err)
+	if len(os.Args) < 2 {
+		log.Fatal("must pass a path to a .gb rom")
 	}
 
-	spew.Dump(cart.Header)
+	e := Emulator{}
+
+	log.Print(e.Run(os.Args[1]))
 }
