@@ -40,6 +40,13 @@ func (r cpuRegisters) CheckFlag(cond ConditionType) bool {
 	}
 }
 
+func (r cpuRegisters) GetFlag(flag uint8) uint8 {
+	if r.F&flag == flag {
+		return 1
+	}
+	return 0
+}
+
 func (r cpuRegisters) SetFlags(z, n, h, c uint8) {
 	if z == 1 {
 		r.F |= CpuFlagZ
