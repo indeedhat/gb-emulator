@@ -110,6 +110,10 @@ const (
 
 type RegisterType byte
 
+func (r RegisterType) Is16bit() bool {
+	return r >= RegisterTypeAF
+}
+
 const (
 	RegisterTypeNone RegisterType = iota
 	RegisterTypeA

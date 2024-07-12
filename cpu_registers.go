@@ -62,3 +62,17 @@ func (r cpuRegisters) SetFlags(z, n, h, c uint8) {
 		r.F &= ^CpuFlagC
 	}
 }
+
+func halfCarry(a, b, result uint16) uint8 {
+	if (a^b^result)&0x10 == 0x10 {
+		return 1
+	}
+	return 0
+}
+
+func carry(a, b, result uint16) uint8 {
+	if (a^b^result)&0x100 == 0x100 {
+		return 1
+	}
+	return 0
+}

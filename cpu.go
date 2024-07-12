@@ -74,30 +74,30 @@ func (c *Cpu) readFromRegister(r RegisterType) uint16 {
 func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
 	switch r {
 	case RegisterTypeA:
-		c.registers.A = uint8(val & 0xFF)
+		c.registers.A = uint8(val)
 	case RegisterTypeB:
-		c.registers.B = uint8(val & 0xFF)
+		c.registers.B = uint8(val)
 	case RegisterTypeC:
-		c.registers.C = uint8(val & 0xFF)
+		c.registers.C = uint8(val)
 	case RegisterTypeD:
-		c.registers.D = uint8(val & 0xFF)
+		c.registers.D = uint8(val)
 	case RegisterTypeE:
-		c.registers.E = uint8(val & 0xFF)
+		c.registers.E = uint8(val)
 	case RegisterTypeH:
-		c.registers.H = uint8(val & 0xFF)
+		c.registers.H = uint8(val)
 	case RegisterTypeL:
-		c.registers.L = uint8(val & 0xFF)
+		c.registers.L = uint8(val)
 	case RegisterTypeAF:
-		c.registers.F = uint8(val & 0xFF)
+		c.registers.F = uint8(val)
 		c.registers.A = uint8(val >> 8)
 	case RegisterTypeBC:
-		c.registers.B = uint8(val & 0xFF)
+		c.registers.B = uint8(val)
 		c.registers.C = uint8(val >> 8)
 	case RegisterTypeDE:
-		c.registers.D = uint8(val & 0xFF)
+		c.registers.D = uint8(val)
 		c.registers.E = uint8(val >> 8)
 	case RegisterTypeHL:
-		c.registers.H = uint8(val & 0xFF)
+		c.registers.H = uint8(val)
 		c.registers.L = uint8(val >> 8)
 	case RegisterTypeSP:
 		c.registers.SP = val
@@ -236,7 +236,7 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 		return errors.New("instruction not defined")
 	case InstructionTypeLD:
 		if nil != destAddress {
-			if instruction.Register2 >= RegisterTypeAF {
+			if instruction.Register2.Is16bit() {
 				c.memory.Write16(destAddress.Address, data)
 				emu_cycle(1)
 			} else {
@@ -244,28 +244,84 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 			}
 			return nil
 		}
-
 		if instruction.AddressMode == AddressModeHL_SPR {
-			var hflag, cflag uint8
-			if c.readFromRegister(instruction.Register2)&0xF+data&0xF >= 0x10 {
-				hflag = 1
-			}
-			if c.readFromRegister(instruction.Register2)&0xFF+data&0xFF >= 0x100 {
-				cflag = 1
-			}
+			final := c.readFromRegister(instruction.Register2) + data
+			hflag := halfCarry(c.readFromRegister(instruction.Register2), data, final)
+			cflag := carry(c.readFromRegister(instruction.Register2), data, final)
 			c.registers.SetFlags(0, 0, hflag, cflag)
-			c.writeToRegister(
-				instruction.Register1,
-				c.readFromRegister(instruction.Register2)+data,
-			)
-
+			c.writeToRegister(instruction.Register1, final)
 			return nil
 		}
-
 		c.writeToRegister(instruction.Register1, data)
 	case InstructionTypeINC:
-		fallthrough
+		if nil != destAddress {
+			c.memory.Write(destAddress.Address, uint8(data&0xFF)+1)
+			emu_cycle(1)
+			return nil
+		}
+		if instruction.Register1 < RegisterTypeAF {
+			var zflag uint8
+			if 0 == uint8(data) {
+				zflag = 1
+			}
+			hflag := halfCarry(data, 1, data+1)
+			c.registers.SetFlags(zflag, 0, hflag, 0xFF)
+		}
+		c.writeToRegister(instruction.Register1, data+1)
 	case InstructionTypeDEC:
+		if nil != destAddress {
+			c.memory.Write(destAddress.Address, uint8(data&0xFF)-1)
+			emu_cycle(1)
+			return nil
+		}
+		if !instruction.Register1.Is16bit() {
+			var zflag uint8
+			if 0 == uint8(data) {
+				zflag = 1
+			}
+			hflag := halfCarry(data, 1, data-1)
+			c.registers.SetFlags(zflag, 0, hflag, 0xFF)
+		}
+		c.writeToRegister(instruction.Register1, data-1)
+	case InstructionTypeADD:
+		var rval uint16
+		var zflag, hflag, cflag uint8
+		if instruction.Register1.Is16bit() {
+			rval = c.readFromRegister(instruction.Register1)
+			c.writeToRegister(instruction.Register1, rval+data)
+			if instruction.Register1 != RegisterTypeSP {
+				zflag = 0xFF
+			}
+		} else {
+			rval = c.readFromRegister(instruction.Register1)
+			final := uint8(rval + data)
+			c.writeToRegister(instruction.Register1, uint16(data))
+			if final == 0 {
+				zflag = 1
+			}
+		}
+		hflag = halfCarry(data, rval, rval+data)
+		cflag = halfCarry(data, rval, rval+data)
+		c.registers.SetFlags(zflag, 0, hflag, cflag)
+	case InstructionTypeSUB:
+		if instruction.Register2 == RegisterTypeA {
+			c.writeToRegister(instruction.Register1, 0)
+			c.registers.SetFlags(1, 1, 0, 0)
+			return nil
+		}
+		rval := c.readFromRegister(instruction.Register1)
+		final := uint8(rval - data)
+		c.writeToRegister(instruction.Register1, uint16(data))
+		var zflag uint8
+		if final == 0 {
+			zflag = 1
+		}
+		hflag := halfCarry(data, rval, rval-data)
+		cflag := halfCarry(data, rval, rval-data)
+		c.registers.SetFlags(zflag, 0, hflag, cflag)
+	case InstructionTypeADC:
+		fallthrough
+	case InstructionTypeSBC:
 		fallthrough
 	case InstructionTypeRLCA:
 		fallthrough
@@ -286,14 +342,6 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	case InstructionTypeCCF:
 		fallthrough
 	case InstructionTypeHALT:
-		fallthrough
-	case InstructionTypeADD:
-		fallthrough
-	case InstructionTypeSUB:
-		fallthrough
-	case InstructionTypeADC:
-		fallthrough
-	case InstructionTypeSBC:
 		fallthrough
 	case InstructionTypeAND:
 		fallthrough
