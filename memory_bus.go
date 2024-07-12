@@ -17,6 +17,22 @@ import "log"
 
 type MemoryBus struct {
 	Cart *Cartridge
+	HRam *RamBank
+	WRam *RamBank
+}
+
+func NewMemoryBus(cart *Cartridge) *MemoryBus {
+	return &MemoryBus{
+		Cart: cart,
+		HRam: &RamBank{
+			offset: 0xFF80,
+			data:   make([]byte, 0x80),
+		},
+		WRam: &RamBank{
+			offset: 0xC000,
+			data:   make([]byte, 0x2000),
+		},
+	}
 }
 
 func (b *MemoryBus) Read(address uint16) uint8 {
@@ -28,10 +44,10 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		panic("not implemented")
 	case address < 0xC000:
 		// cart ram
-		panic("not implemented")
+		return b.Cart.Read(address)
 	case address < 0xE000:
 		// working ram
-		panic("not implemented")
+		return b.WRam.Read(address)
 	case address < 0xFE00:
 		// Echo ram is unusable
 		return 0
@@ -46,7 +62,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		panic("not implemented")
 	case address < 0xFFFF:
 		// high ram/zero page
-		panic("not implemented")
+		return b.HRam.Read(address)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
 		panic("not implemente")
@@ -57,49 +73,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 }
 
 func (b *MemoryBus) Read16(address uint16) uint16 {
-	switch true {
-	case address < 0x8000:
-		return uint16(b.Cart.Read(address)) | uint16(b.Cart.Read(address+1))<<8
-	case address < 0xA000:
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xA000:
-		// tile data
-		panic("not implemented")
-	case address < 0xC000:
-		// cart ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xE000:
-		// working ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFE00:
-		// Echo ram is unusable
-		return 0
-	case address < 0xFEA0:
-		// OAM
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFF00:
-		// reserved and unusable
-		return 0
-	case address < 0xFF80:
-		// IO registers
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFFFF:
-		// high ram/zero page
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address == 0xFFFF:
-		// CPU ENABLE REIGSTER
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemente")
-	default:
-		log.Printf("unsupported mem.read16 0x%X", address)
-	}
-	return 0
+	return uint16(b.Read(address)) | uint16(b.Read(address+1))<<8
 }
 
 func (b *MemoryBus) Write(address uint16, value uint8) {
@@ -112,12 +86,10 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		panic("not implemented")
 	case address < 0xC000:
 		// cart ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
+		b.Cart.Write(address, value)
 	case address < 0xE000:
 		// working ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
+		b.WRam.Write(address, value)
 	case address < 0xFE00:
 		// Echo ram is unusable
 	case address < 0xFEA0:
@@ -132,8 +104,7 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		panic("not implemented")
 	case address < 0xFFFF:
 		// high ram/zero page
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
+		b.HRam.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
 		log.Printf("unsupported mem.read16 0x%X", address)
@@ -144,43 +115,20 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 }
 
 func (b *MemoryBus) Write16(address uint16, value uint16) {
-	switch true {
-	case address < 0x8000:
-		b.Cart.Write(address, uint8(value&0xFF))
-		b.Cart.Write(address+1, uint8(value>>8))
-	case address < 0xA000:
-		// tile data
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xC000:
-		// cart ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xE000:
-		// working ram
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFE00:
-		// Echo ram is unusable
-	case address < 0xFEA0:
-		// OAM
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFF00:
-		// reserved and unusable
-	case address < 0xFF80:
-		// IO registers
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address < 0xFFFF:
-		// high ram/zero page
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemented")
-	case address == 0xFFFF:
-		// CPU ENABLE REIGSTER
-		log.Printf("unsupported mem.read16 0x%X", address)
-		panic("not implemente")
-	default:
-		log.Printf("unsupported mem.write16 0x%X", address)
-	}
+	b.Write(address, uint8(value&0xFF))
+	b.Write(address+1, uint8(value>>8))
+}
+
+type RamBank struct {
+	offset uint16
+	data   []byte
+}
+
+func (r *RamBank) Read(address uint16) uint8 {
+	return r.data[address-r.offset]
+
+}
+
+func (r *RamBank) Write(address uint16, value uint8) {
+	r.data[address-r.offset] = value
 }
