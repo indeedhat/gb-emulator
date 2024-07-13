@@ -203,5 +203,94 @@ func (c *Cpu) execOR(Instruction CpuInstriction, data uint16) {
 }
 
 func (c *Cpu) execCALL(instruction CpuInstriction, data uint16) {
+	if instruction.Condition != ConditionTypeNone && !c.registers.CheckFlag(instruction.Condition) {
+		return
+	}
 
+	c.stackPush(c.registers.PC)
+	c.registers.PC = data
+	emu_cycle(3)
+}
+
+func (c *Cpu) execCCF() {
+	var cflag uint8
+	if c.registers.GetFlag(CpuFlagC) == 0 {
+		cflag = 1
+	}
+	c.registers.SetFlags(0xFF, 0, 0, cflag)
+}
+
+func (c *Cpu) execCP(instruction CpuInstriction, data uint16) {
+	if instruction.AddressMode != AddressModeR_R {
+		emu_cycle(1)
+	}
+	if instruction.Register2 == RegisterTypeA {
+		c.registers.SetFlags(1, 1, 0, 0)
+		return
+	}
+
+	rval := c.readFromRegister(instruction.Register1)
+	final := rval - data
+
+	var zflag uint8
+	if final == 0 {
+		zflag = 1
+	}
+
+	hflag := halfCarry(data, rval, final)
+	cflag := halfCarry(data, rval, final)
+	c.registers.SetFlags(zflag, 1, hflag, cflag)
+}
+
+func (c *Cpu) execCPL() {
+	c.registers.A = ^c.registers.A
+	c.registers.SetFlags(0xFF, 1, 1, 0xFF)
+}
+
+func (c *Cpu) execDAA() {
+	var cflag, zflag uint8
+	var adjustment uint8
+
+	if c.registers.GetFlag(CpuFlagH) == 1 ||
+		(c.registers.GetFlag(CpuFlagN) == 0 && c.registers.A&0xF > 9) {
+
+		adjustment = 6
+	}
+
+	if c.registers.GetFlag(CpuFlagC) == 1 ||
+		(c.registers.GetFlag(CpuFlagN) == 0 && c.registers.A > 99) {
+
+		adjustment |= 0x60
+		cflag = 1
+	}
+
+	if c.registers.GetFlag(CpuFlagN) == 1 {
+		adjustment = -adjustment
+	}
+
+	c.registers.A += adjustment
+	if c.registers.A == 0 {
+		zflag = 1
+	}
+
+	c.registers.SetFlags(zflag, 0xFF, 0, cflag)
+}
+
+func (c *Cpu) execPOP(Instruction CpuInstriction) {
+	data := c.stackPop()
+	emu_cycle(2)
+
+	if Instruction.Register1 == RegisterTypeAF {
+		c.writeToRegister(Instruction.Register1, data&0xFFF0)
+	} else {
+		c.writeToRegister(Instruction.Register1, data)
+	}
+}
+
+func (c *Cpu) execPUSH(Instruction CpuInstriction) {
+	data := c.readFromRegister(Instruction.Register1)
+	emu_cycle(2)
+
+	c.stackPush(data)
+	emu_cycle(1)
 }
