@@ -234,36 +234,54 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	switch instruction.Type {
 	case InstructionTypeNone:
 		return errors.New("instruction not defined")
-	case InstructionTypeJP:
-		c.execJP(instruction, data)
-	case InstructionTypeXOR:
-		c.execXOR(data)
-	case InstructionTypeNOP:
-		return nil // NOOP
+	case InstructionTypeADC:
+		c.execADC(instruction, data)
+	case InstructionTypeADD:
+		c.execADD(instruction, data)
+	case InstructionTypeAND:
+		c.execAND(instruction, data)
+	case InstructionTypeCALL:
+		c.execCALL(instruction, data)
+	case InstructionTypeCCF:
+		c.execCCF()
+	case InstructionTypeCP:
+		c.execCP(instruction, data)
+	case InstructionTypeCPL:
+		c.execCPL()
+	case InstructionTypeDAA:
+		c.execDAA()
+	case InstructionTypeDEC:
+		c.execDEC(instruction, data, destAddress)
 	case InstructionTypeDI:
 		c.execDI()
 	case InstructionTypeEI:
 		c.execEI()
-	case InstructionTypeLD:
-		c.execLD(instruction, data, destAddress)
+	case InstructionTypeHALT:
+		// TODO
+		fallthrough
 	case InstructionTypeINC:
 		c.execINC(instruction, data, destAddress)
-	case InstructionTypeDEC:
-		c.execDEC(instruction, data, destAddress)
-	case InstructionTypeADD:
-		c.execADD(instruction, data)
-	case InstructionTypeSUB:
-		c.execSUB(instruction, data)
-	case InstructionTypeADC:
-		c.execADC(instruction, data)
-	case InstructionTypeSBC:
-		c.execSBC(instruction, data)
-	case InstructionTypeAND:
-		c.execAND(instruction, data)
+	case InstructionTypeJP:
+		c.execJP(instruction, data)
+	case InstructionTypeLD:
+		c.execLD(instruction, data, destAddress)
+	case InstructionTypeLDH:
+		c.execLDH(instruction, data)
+	case InstructionTypeNOP:
+		return nil // NOOP
 	case InstructionTypeOR:
 		c.execOR(instruction, data)
-	case InstructionTypeRLCA:
-		fallthrough
+	case InstructionTypePOP:
+		c.execPOP(instruction)
+	case InstructionTypePUSH:
+		c.execPUSH(instruction)
+
+	case InstructionTypeXOR:
+		c.execXOR(data)
+	case InstructionTypeSUB:
+		c.execSUB(instruction, data)
+	case InstructionTypeSBC:
+		c.execSBC(instruction, data)
 	case InstructionTypeSTOP:
 		fallthrough
 	case InstructionTypeRLA:
@@ -272,31 +290,15 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 		fallthrough
 	case InstructionTypeRRA:
 		fallthrough
-	case InstructionTypeDAA:
-		fallthrough
-	case InstructionTypeCPL:
+	case InstructionTypeRLCA:
 		fallthrough
 	case InstructionTypeSCF:
-		fallthrough
-	case InstructionTypeCCF:
-		fallthrough
-	case InstructionTypeHALT:
-		fallthrough
-	case InstructionTypeCP:
-		fallthrough
-	case InstructionTypePOP:
-		fallthrough
-	case InstructionTypePUSH:
 		fallthrough
 	case InstructionTypeRET:
 		fallthrough
 	case InstructionTypeCB:
 		fallthrough
-	case InstructionTypeCALL:
-		fallthrough
 	case InstructionTypeRETI:
-		fallthrough
-	case InstructionTypeLDH:
 		fallthrough
 	case InstructionTypeJPHL:
 		fallthrough
