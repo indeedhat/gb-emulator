@@ -20,7 +20,7 @@ func (i InstructionType) String() string {
 		"PUSH", "RET", "CB",
 		"CALL", "RETI", "LDH",
 		"JPHL", "DI", "EI",
-		"RST", "ERR", "PREFIX",
+		"RST",
 		"CB_RLC", "CB_RRC", "CB_RRCA",
 		"CB_RL", "CB_RR", "CB_SLA",
 		"CB_SRA", "CB_SWAP", "CB_SRL",
@@ -64,8 +64,6 @@ const (
 	InstructionTypeDI
 	InstructionTypeEI
 	InstructionTypeRST
-	InstructionTypeERR
-	InstructionTypePREFIX
 
 	// CB instructions...
 	InstructionTypeRLC
@@ -366,7 +364,7 @@ var CpuInstructions = []CpuInstriction{
 	0xC8: {InstructionTypeRET, 0, 0, 0, ConditionTypeZ, 0},
 	0xC9: {InstructionTypeRET, 0, 0, 0, 0, 0},
 	0xCA: {InstructionTypeJP, AddressModeN16, 0, 0, ConditionTypeZ, 0},
-	0xCB: {InstructionTypePREFIX, 0, 0, 0, 0, 0},
+	0xCB: {InstructionTypeCB, AddressModeN8, 0, 0, 0, 0},
 	0xCC: {InstructionTypeCALL, AddressModeN16, 0, 0, ConditionTypeZ, 0},
 	0xCD: {InstructionTypeCALL, AddressModeN16, 0, 0, 0, 0},
 	0xCE: {InstructionTypeSUB, AddressModeR_N8, RegisterTypeA, 0, 0, 0},

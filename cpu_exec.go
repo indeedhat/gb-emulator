@@ -1,10 +1,21 @@
 package main
 
+import (
+	"fmt"
+	"regexp"
+)
+
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 	if c.registers.CheckFlag(instruction.Condition) {
 		c.registers.PC = data
 		emu_cycle(1)
 	}
+}
+
+func (c *Cpu) execJR(instruction CpuInstriction, data uint16) {
+	offset := int8(data & 0xFF00)
+	// NB: this mess handles the int/uint conversions properly without having to resort to unsafe pointers
+	c.execJP(instruction, uint16(int16(c.registers.PC)+int16(offset)))
 }
 
 func (c *Cpu) execXOR(data uint16) {
@@ -293,4 +304,112 @@ func (c *Cpu) execPUSH(Instruction CpuInstriction) {
 
 	c.stackPush(data)
 	emu_cycle(1)
+}
+
+func (c *Cpu) execRET(instruction CpuInstriction) {
+	if instruction.Condition != ConditionTypeNone {
+		emu_cycle(1)
+
+		if !c.registers.CheckFlag(instruction.Condition) {
+			return
+		}
+	}
+
+	data := c.stackPop()
+	emu_cycle(3)
+
+	c.registers.PC = data
+}
+
+func (c *Cpu) execRETI(instruction CpuInstriction) {
+	c.masterInterupt = true
+	c.execRET(instruction)
+}
+
+func (c *Cpu) execRLA() {
+	cflag := c.registers.GetFlag(CpuFlagC)
+	c.registers.SetFlags(0, 0, 0, c.registers.A&0x80>>7)
+	c.registers.A = (c.registers.A << 1) | cflag
+}
+
+func (c *Cpu) execRLCA() {
+	msb := c.registers.A & 0x80 >> 7
+	c.registers.SetFlags(0, 0, 0, msb)
+	c.registers.A = (c.registers.A << 1) | msb
+}
+
+func (c *Cpu) execRRA() {
+	cflag := c.registers.GetFlag(CpuFlagC)
+	c.registers.SetFlags(0, 0, 0, c.registers.A&0x01)
+	c.registers.A = (c.registers.A >> 1) | cflag<<7
+}
+
+func (c *Cpu) execRRCA() {
+	lsb := c.registers.A & 0x01
+	c.registers.SetFlags(0, 0, 0, lsb)
+	c.registers.A = (c.registers.A >> 1) | lsb<<7
+}
+
+func (c *Cpu) execRST(instruction CpuInstriction) {
+	if instruction.Condition != ConditionTypeNone && !c.registers.CheckFlag(instruction.Condition) {
+		return
+	}
+
+	c.stackPush(c.registers.PC)
+	c.registers.PC = uint16(instruction.Param) & 0x0F
+	emu_cycle(3)
+}
+
+func (c *Cpu) execSCF() {
+	c.registers.SetFlags(0xFF, 0, 0, 1)
+}
+
+func (c *Cpu) execSTOP(_ uint16) {
+	fmt.Println("execSTOP")
+}
+
+func (c *Cpu) execHALT() {
+	c.halted = true
+}
+
+func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
+	emu_cycle(1)
+
+	if bitOp := uint8(cbyte >> 6 & 0x03); bitOp != 0 {
+		c.execCB_BitOp(bitOp, Instruction, cbyte)
+		return
+	}
+
+	// TODO: implement me
+}
+
+func (c *Cpu) execCB_BitOp(bitOp uint8, instruction CpuInstriction, cbyte uint16) {
+	idx := uint8(cbyte >> 3 & 0x07)
+	reg := c.cbRegLookup(int(cbyte & 0x07))
+
+	if reg == RegisterTypeHL {
+		emu_cycle(2)
+	}
+
+	switch bitOp {
+	case 0x1: // BIT
+		c.registers.SetFlags(uint8(c.readFromRegister(reg)>>idx&0x01), 0, 1, 0xFF)
+	case 0x2: // RES
+		mask := ^uint16(1 << idx)
+		c.writeToRegister(reg, c.readFromRegister(reg)&mask)
+	case 0x3: // SET
+		c.writeToRegister(reg, c.readFromRegister(reg)|1<<idx)
+	}
+}
+func (c *Cpu) cbRegLookup(i int) RegisterType {
+	return []RegisterType{
+		RegisterTypeB,
+		RegisterTypeC,
+		RegisterTypeD,
+		RegisterTypeE,
+		RegisterTypeH,
+		RegisterTypeL,
+		RegisterTypeHL,
+		RegisterTypeA,
+	}[0]
 }

@@ -257,12 +257,13 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	case InstructionTypeEI:
 		c.execEI()
 	case InstructionTypeHALT:
-		// TODO
-		fallthrough
+		c.execHALT()
 	case InstructionTypeINC:
 		c.execINC(instruction, data, destAddress)
 	case InstructionTypeJP:
 		c.execJP(instruction, data)
+	case InstructionTypeJR:
+		c.execJR(instruction, data)
 	case InstructionTypeLD:
 		c.execLD(instruction, data, destAddress)
 	case InstructionTypeLDH:
@@ -275,46 +276,37 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 		c.execPOP(instruction)
 	case InstructionTypePUSH:
 		c.execPUSH(instruction)
-
-	case InstructionTypeXOR:
-		c.execXOR(data)
-	case InstructionTypeSUB:
-		c.execSUB(instruction, data)
+	case InstructionTypeRET:
+		c.execRET(instruction)
+	case InstructionTypeRETI:
+		c.execRETI(instruction)
+	case InstructionTypeRLA:
+		c.execRLA()
+	case InstructionTypeRLCA:
+		c.execRLCA()
+	case InstructionTypeRRA:
+		c.execRRA()
+	case InstructionTypeRRCA:
+		c.execRRCA()
+	case InstructionTypeRST:
+		c.execRST(instruction)
 	case InstructionTypeSBC:
 		c.execSBC(instruction, data)
-	case InstructionTypeSTOP:
-		fallthrough
-	case InstructionTypeRLA:
-		fallthrough
-	case InstructionTypeJR:
-		fallthrough
-	case InstructionTypeRRA:
-		fallthrough
-	case InstructionTypeRLCA:
-		fallthrough
 	case InstructionTypeSCF:
-		fallthrough
-	case InstructionTypeRET:
-		fallthrough
+		c.execSCF()
+	case InstructionTypeSTOP:
+		c.execSTOP(data)
+	case InstructionTypeSUB:
+		c.execSUB(instruction, data)
+	case InstructionTypeXOR:
+		c.execXOR(data)
 	case InstructionTypeCB:
-		fallthrough
-	case InstructionTypeRETI:
-		fallthrough
-	case InstructionTypeJPHL:
-		fallthrough
-	case InstructionTypeRST:
-		fallthrough
-	case InstructionTypeERR:
-		fallthrough
-	case InstructionTypePREFIX:
-		fallthrough
+		c.execCB(instruction, data)
 
 	// CB instructions...
 	case InstructionTypeRLC:
 		fallthrough
 	case InstructionTypeRRC:
-		fallthrough
-	case InstructionTypeRRCA:
 		fallthrough
 	case InstructionTypeRL:
 		fallthrough
