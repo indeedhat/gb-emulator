@@ -18,10 +18,10 @@ func (e *Emulator) Run(romPath string) error {
 		return err
 	}
 
-	memory := &MemoryBus{Cart: cartridge}
+	memory := NewMemoryBus(cartridge)
 	cpu := NewCpu(memory)
 
-	for i := 0; i < 20; i++ {
+	for {
 		if e.paused {
 			time.Sleep(10 * time.Millisecond)
 			continue

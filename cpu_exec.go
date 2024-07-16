@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 )
 
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
@@ -28,11 +27,11 @@ func (c *Cpu) execXOR(data uint16) {
 }
 
 func (c *Cpu) execDI() {
-	c.masterInterupt = false
+	c.ime = false
 }
 
 func (c *Cpu) execEI() {
-	c.masterInterupt = true
+	c.enablingIME = true
 }
 
 func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
@@ -322,7 +321,7 @@ func (c *Cpu) execRET(instruction CpuInstriction) {
 }
 
 func (c *Cpu) execRETI(instruction CpuInstriction) {
-	c.masterInterupt = true
+	c.ime = true
 	c.execRET(instruction)
 }
 
