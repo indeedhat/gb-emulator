@@ -303,29 +303,6 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	case InstructionTypeCB:
 		c.execCB(instruction, data)
 
-	// CB instructions...
-	case InstructionTypeRLC:
-		fallthrough
-	case InstructionTypeRRC:
-		fallthrough
-	case InstructionTypeRL:
-		fallthrough
-	case InstructionTypeRR:
-		fallthrough
-	case InstructionTypeSLA:
-		fallthrough
-	case InstructionTypeSRA:
-		fallthrough
-	case InstructionTypeSWAP:
-		fallthrough
-	case InstructionTypeSRL:
-		fallthrough
-	case InstructionTypeBIT:
-		fallthrough
-	case InstructionTypeRES:
-		fallthrough
-	case InstructionTypeSET:
-		fallthrough
 	default:
 		return errors.New("not implemented")
 	}

@@ -380,7 +380,48 @@ func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
 		return
 	}
 
-	// TODO: implement me
+	opCode := uint8(cbyte >> 3 & 0x07)
+	reg := c.cbRegLookup(int(cbyte & 0x07))
+
+	if reg == RegisterTypeHL {
+		emu_cycle(2)
+	}
+
+	var zflag, cflag uint16
+	rbyte := c.readFromRegister(reg)
+
+	switch opCode {
+	case 0: // RLC
+		cflag = (rbyte & 0x80 >> 7)
+		c.writeToRegister(reg, (rbyte<<1)|cflag)
+	case 1: // RRC
+		cflag := rbyte & 0x01
+		c.writeToRegister(reg, (rbyte>>1)|(cflag<<7))
+	case 2: // RL
+		cflag = uint16(rbyte >> 7)
+		c.writeToRegister(reg, (rbyte<<1)|uint16(c.registers.GetFlag(CpuFlagC)))
+	case 3: // RR
+		cflag = uint16(rbyte & 0x01)
+		c.writeToRegister(reg, (rbyte<<1)|uint16(c.registers.GetFlag(CpuFlagC)<<7&0xFF))
+	case 4: // SLA
+		cflag = uint16(rbyte >> 7)
+		c.writeToRegister(reg, (rbyte<<1)&0xFF)
+	case 5: // SRA
+		msb := rbyte & 0x80
+		cflag = uint16(rbyte & 0x01)
+		c.writeToRegister(reg, (rbyte>>1)|msb)
+	case 6: // SWAP
+		c.writeToRegister(reg, (rbyte<<4&0xF0)|(rbyte>>4&0x0F))
+	case 7: // SRL
+		cflag = uint16(rbyte & 0x01)
+		c.writeToRegister(reg, (rbyte>>1)&0x7F)
+	}
+
+	if c.readFromRegister(reg) == 0 {
+		zflag = 1
+	}
+
+	c.registers.SetFlags(uint8(zflag), 0, 0, uint8(cflag))
 }
 
 func (c *Cpu) execCB_BitOp(bitOp uint8, instruction CpuInstriction, cbyte uint16) {
@@ -401,6 +442,7 @@ func (c *Cpu) execCB_BitOp(bitOp uint8, instruction CpuInstriction, cbyte uint16
 		c.writeToRegister(reg, c.readFromRegister(reg)|1<<idx)
 	}
 }
+
 func (c *Cpu) cbRegLookup(i int) RegisterType {
 	return []RegisterType{
 		RegisterTypeB,
