@@ -85,8 +85,8 @@ type AddressMode byte
 const (
 	AddressModeImplied AddressMode = iota
 	AddressModeR
-	AddressModeR_N16
 	AddressModeR_R
+	AddressModeR_N16
 	AddressModeR_N8
 	AddressModeR_MR
 	AddressModeR_HLI
@@ -97,7 +97,6 @@ const (
 	AddressModeN16
 	AddressModeMR
 	AddressModeMR_N8
-	AddressModeMR_N16
 	AddressModeMR_R
 	AddressModeA8_R
 	AddressModeA16_R
@@ -151,7 +150,7 @@ type CpuInstriction struct {
 var CpuInstructions = []CpuInstriction{
 	0x00: {InstructionTypeNOP, 0, 0, 0, 0, 0},
 	0x01: {InstructionTypeLD, AddressModeR_N16, RegisterTypeBC, 0, 0, 0},
-	0x02: {InstructionTypeLD, AddressModeMR_N16, RegisterTypeBC, RegisterTypeA, 0, 0},
+	0x02: {InstructionTypeLD, AddressModeMR_R, RegisterTypeBC, RegisterTypeA, 0, 0},
 	0x03: {InstructionTypeINC, AddressModeR, RegisterTypeBC, 0, 0, 0},
 	0x04: {InstructionTypeINC, AddressModeR, RegisterTypeB, 0, 0, 0},
 	0x05: {InstructionTypeDEC, AddressModeR, RegisterTypeB, 0, 0, 0},
@@ -168,7 +167,7 @@ var CpuInstructions = []CpuInstriction{
 
 	0x10: {InstructionTypeSTOP, AddressModeN8, 0, 0, 0, 0},
 	0x11: {InstructionTypeLD, AddressModeR_N16, RegisterTypeDE, 0, 0, 0},
-	0x12: {InstructionTypeLD, AddressModeMR_N16, RegisterTypeDE, RegisterTypeA, 0, 0},
+	0x12: {InstructionTypeLD, AddressModeMR_R, RegisterTypeDE, RegisterTypeA, 0, 0},
 	0x13: {InstructionTypeINC, AddressModeR, RegisterTypeDE, 0, 0, 0},
 	0x14: {InstructionTypeINC, AddressModeR, RegisterTypeD, 0, 0, 0},
 	0x15: {InstructionTypeDEC, AddressModeR, RegisterTypeD, 0, 0, 0},
