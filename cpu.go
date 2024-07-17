@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 )
 
@@ -16,6 +17,40 @@ type Cpu struct {
 	enablingIME       bool
 	interuptFlags     uint8
 	interruptRegister uint8
+}
+
+func (c *Cpu) String() string {
+	zf, hf, nf, cf := "-", "-", "-", "-"
+	if c.registers.GetFlag(CpuFlagZ) == 1 {
+		zf = "Z"
+	}
+	if c.registers.GetFlag(CpuFlagN) == 1 {
+		nf = "N"
+	}
+	if c.registers.GetFlag(CpuFlagH) == 1 {
+		hf = "H"
+	}
+	if c.registers.GetFlag(CpuFlagC) == 1 {
+		cf = "C"
+	}
+
+	opcode := CpuInstructions[c.membus.Read(c.registers.PC)]
+
+	return fmt.Sprintf("[PC: 0x%04X] %v\t (0x%02X%02X) %s%s%s%s | A 0x%02X | BC 0x%04X | DE 0x%04X | HL 0x%04X | SP 0x%04X |",
+		c.registers.PC,
+		opcode.Type,
+		c.membus.Read(c.registers.PC+1),
+		c.membus.Read(c.registers.PC+2),
+		zf,
+		nf,
+		hf,
+		cf,
+		c.registers.A,
+		c.readFromRegister(RegisterTypeBC),
+		c.readFromRegister(RegisterTypeDE),
+		c.readFromRegister(RegisterTypeHL),
+		c.readFromRegister(RegisterTypeSP),
+	)
 }
 
 func NewCpu(bus *MemoryBus) *Cpu {
@@ -37,11 +72,9 @@ func (c *Cpu) Step() error {
 			c.halted = false
 		}
 	} else {
-		pc := c.registers.PC
-		opcode, instruction := c.fetchIsntruction()
+		log.Print(c)
+		_, instruction := c.fetchIsntruction()
 		data, destAddress := c.fetchData(instruction)
-
-		log.Printf("[PC: 0x%X] 0x%X => %v -- 0x%X", pc, opcode, instruction, data)
 		c.executeInstruction(instruction, data, destAddress)
 	}
 
@@ -62,12 +95,10 @@ func (c *Cpu) interruptHandler() {
 }
 
 func (c *Cpu) stackPop() uint16 {
-	lsb := c.membus.Read(c.registers.SP)
-	c.registers.SP++
+	val := c.membus.Read16(c.registers.SP)
+	c.registers.SP += 2
 
-	msb := c.membus.Read(c.registers.SP)
-	c.registers.SP++
-	return uint16(msb)<<8 | uint16(lsb)
+	return val
 }
 
 func (c *Cpu) stackPush(value uint16) {
@@ -76,75 +107,6 @@ func (c *Cpu) stackPush(value uint16) {
 
 	c.registers.SP--
 	c.membus.Write(c.registers.SP, uint8(value))
-}
-
-func (c *Cpu) readFromRegister(r RegisterType) uint16 {
-	switch r {
-	case RegisterTypeA:
-		return uint16(c.registers.A)
-	case RegisterTypeB:
-		return uint16(c.registers.B)
-	case RegisterTypeC:
-		return uint16(c.registers.C)
-	case RegisterTypeD:
-		return uint16(c.registers.D)
-	case RegisterTypeE:
-		return uint16(c.registers.E)
-	case RegisterTypeH:
-		return uint16(c.registers.H)
-	case RegisterTypeL:
-		return uint16(c.registers.L)
-	case RegisterTypeAF:
-		return uint16(c.registers.F) | (uint16(c.registers.A) << 8)
-	case RegisterTypeBC:
-		return uint16(c.registers.C) | (uint16(c.registers.B) << 8)
-	case RegisterTypeDE:
-		return uint16(c.registers.E) | (uint16(c.registers.D) << 8)
-	case RegisterTypeHL:
-		return uint16(c.registers.L) | (uint16(c.registers.H) << 8)
-	case RegisterTypeSP:
-		return c.registers.SP
-	case RegisterTypePC:
-		return c.registers.PC
-	}
-
-	// NB: not really possible but keeps the compiler happy
-	return 0
-}
-
-func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
-	switch r {
-	case RegisterTypeA:
-		c.registers.A = uint8(val)
-	case RegisterTypeB:
-		c.registers.B = uint8(val)
-	case RegisterTypeC:
-		c.registers.C = uint8(val)
-	case RegisterTypeD:
-		c.registers.D = uint8(val)
-	case RegisterTypeE:
-		c.registers.E = uint8(val)
-	case RegisterTypeH:
-		c.registers.H = uint8(val)
-	case RegisterTypeL:
-		c.registers.L = uint8(val)
-	case RegisterTypeAF:
-		c.registers.F = uint8(val)
-		c.registers.A = uint8(val >> 8)
-	case RegisterTypeBC:
-		c.registers.B = uint8(val)
-		c.registers.C = uint8(val >> 8)
-	case RegisterTypeDE:
-		c.registers.D = uint8(val)
-		c.registers.E = uint8(val >> 8)
-	case RegisterTypeHL:
-		c.registers.H = uint8(val)
-		c.registers.L = uint8(val >> 8)
-	case RegisterTypeSP:
-		c.registers.SP = val
-	case RegisterTypePC:
-		c.registers.PC = val
-	}
 }
 
 func (c *Cpu) fetchIsntruction() (uint8, CpuInstriction) {
@@ -169,8 +131,7 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 	case AddressModeR_N16:
 		fallthrough
 	case AddressModeN16:
-		data = uint16(c.membus.Read(c.registers.PC)) |
-			(uint16(c.membus.Read(c.registers.PC+1)) << 8)
+		data = c.membus.Read16(c.registers.PC)
 		emu_cycle(2)
 		c.registers.PC += 2
 
@@ -242,16 +203,14 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 
 	case AddressModeA16_R:
 		destAddr = &CpuDestAddress{
-			uint16(c.membus.Read(c.registers.PC)) |
-				(uint16(c.membus.Read(c.registers.PC+1)) << 8),
+			c.membus.Read16(c.registers.PC),
 		}
 		emu_cycle(2)
 		c.registers.PC += 2
 		data = c.readFromRegister(instruction.Register2)
 
 	case AddressModeR_A16:
-		addr := uint16(c.membus.Read(c.registers.PC)) |
-			(uint16(c.membus.Read(c.registers.PC+1)) << 8)
+		addr := c.membus.Read16(c.registers.PC)
 		c.registers.PC += 2
 		data = uint16(c.membus.Read(addr))
 		emu_cycle(3)
@@ -297,7 +256,7 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	case InstructionTypeLD:
 		c.execLD(instruction, data, destAddress)
 	case InstructionTypeLDH:
-		c.execLDH(instruction, data)
+		c.execLDH(instruction, data, destAddress)
 	case InstructionTypeNOP:
 		return nil // NOOP
 	case InstructionTypeOR:

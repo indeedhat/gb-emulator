@@ -20,7 +20,76 @@ type cpuRegisters struct {
 	PC uint16
 }
 
-func (r cpuRegisters) CheckFlag(cond ConditionType) bool {
+func (c *Cpu) readFromRegister(r RegisterType) uint16 {
+	switch r {
+	case RegisterTypeA:
+		return uint16(c.registers.A)
+	case RegisterTypeB:
+		return uint16(c.registers.B)
+	case RegisterTypeC:
+		return uint16(c.registers.C)
+	case RegisterTypeD:
+		return uint16(c.registers.D)
+	case RegisterTypeE:
+		return uint16(c.registers.E)
+	case RegisterTypeH:
+		return uint16(c.registers.H)
+	case RegisterTypeL:
+		return uint16(c.registers.L)
+	case RegisterTypeAF:
+		return uint16(c.registers.F)<<8 | uint16(c.registers.A)
+	case RegisterTypeBC:
+		return uint16(c.registers.C)<<8 | uint16(c.registers.B)
+	case RegisterTypeDE:
+		return uint16(c.registers.E)<<8 | uint16(c.registers.D)
+	case RegisterTypeHL:
+		return uint16(c.registers.L)<<8 | uint16(c.registers.H)
+	case RegisterTypeSP:
+		return c.registers.SP
+	case RegisterTypePC:
+		return c.registers.PC
+	}
+
+	// NB: not really possible but keeps the compiler happy
+	return 0
+}
+
+func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
+	switch r {
+	case RegisterTypeA:
+		c.registers.A = uint8(val)
+	case RegisterTypeB:
+		c.registers.B = uint8(val)
+	case RegisterTypeC:
+		c.registers.C = uint8(val)
+	case RegisterTypeD:
+		c.registers.D = uint8(val)
+	case RegisterTypeE:
+		c.registers.E = uint8(val)
+	case RegisterTypeH:
+		c.registers.H = uint8(val)
+	case RegisterTypeL:
+		c.registers.L = uint8(val)
+	case RegisterTypeAF:
+		c.registers.F = uint8(val)
+		c.registers.A = uint8(val >> 8)
+	case RegisterTypeBC:
+		c.registers.B = uint8(val)
+		c.registers.C = uint8(val >> 8)
+	case RegisterTypeDE:
+		c.registers.D = uint8(val)
+		c.registers.E = uint8(val >> 8)
+	case RegisterTypeHL:
+		c.registers.H = uint8(val)
+		c.registers.L = uint8(val >> 8)
+	case RegisterTypeSP:
+		c.registers.SP = val
+	case RegisterTypePC:
+		c.registers.PC = val
+	}
+}
+
+func (r *cpuRegisters) CheckFlag(cond ConditionType) bool {
 	c := r.F&CpuFlagC == CpuFlagC
 	z := r.F&CpuFlagZ == CpuFlagZ
 
@@ -40,14 +109,14 @@ func (r cpuRegisters) CheckFlag(cond ConditionType) bool {
 	}
 }
 
-func (r cpuRegisters) GetFlag(flag uint8) uint8 {
+func (r *cpuRegisters) GetFlag(flag uint8) uint8 {
 	if r.F&flag == flag {
 		return 1
 	}
 	return 0
 }
 
-func (r cpuRegisters) SetFlags(z, n, h, c uint8) {
+func (r *cpuRegisters) SetFlags(z, n, h, c uint8) {
 	if z == 1 {
 		r.F |= CpuFlagZ
 	} else if z == 0 {
