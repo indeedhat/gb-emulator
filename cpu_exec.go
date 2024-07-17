@@ -12,7 +12,7 @@ func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 }
 
 func (c *Cpu) execJR(instruction CpuInstriction, data uint16) {
-	offset := int8(data & 0xFF00)
+	offset := int8(data & 0xFF)
 	// NB: this mess handles the int/uint conversions properly without having to resort to unsafe pointers
 	c.execJP(instruction, uint16(int16(c.registers.PC)+int16(offset)))
 }
@@ -58,52 +58,56 @@ func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDe
 	c.writeToRegister(instruction.Register1, data)
 }
 
-func (c *Cpu) execLDH(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	if instruction.Register1 == RegisterTypeA {
 		c.writeToRegister(RegisterTypeA, uint16(c.membus.Read(0xFF00|data)&0xFF))
 	} else {
-		c.membus.Write(0xFF00|c.readFromRegister(RegisterTypeA), uint8(data))
+		c.membus.Write(destAddress.Address, c.registers.A)
 	}
 }
 
 func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
-	if nil != destAddress {
-		c.membus.Write(destAddress.Address, uint8(data&0xFF)+1)
+	if instruction.Register1.Is16bit() {
 		emu_cycle(1)
-		return
+		data++
+	} else {
+		data = uint16(uint8(data&0xFF)) + 1
 	}
 
-	if instruction.Register1 < RegisterTypeAF {
-		var zflag uint8
-		if 0 == uint8(data) {
-			zflag = 1
-		}
+	var zflag, hflag uint8
 
-		hflag := halfCarry(data, 1, data+1)
+	if nil != destAddress {
+		c.membus.Write(destAddress.Address, uint8(data))
+	} else {
+		c.writeToRegister(instruction.Register1, data)
+		hflag = halfCarry(data-1, 1, data)
+	}
+
+	if !instruction.Register1.Is16bit() || instruction.Register1 == RegisterTypeHL {
 		c.registers.SetFlags(zflag, 0, hflag, 0xFF)
 	}
-
-	c.writeToRegister(instruction.Register1, data+1)
 }
 
 func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
-	if nil != destAddress {
-		c.membus.Write(destAddress.Address, uint8(data&0xFF)-1)
+	if instruction.Register1.Is16bit() {
 		emu_cycle(1)
-		return
+		data--
+	} else {
+		data = uint16(uint8(data&0xFF)) - 1
 	}
 
-	if !instruction.Register1.Is16bit() {
-		var zflag uint8
-		if 0 == uint8(data) {
-			zflag = 1
-		}
+	var zflag, hflag uint8
 
-		hflag := halfCarry(data, 1, data-1)
+	if nil != destAddress {
+		c.membus.Write(destAddress.Address, uint8(data))
+	} else {
+		c.writeToRegister(instruction.Register1, data)
+		hflag = halfCarry(data+1, 1, data)
+	}
+
+	if !instruction.Register1.Is16bit() || instruction.Register1 == RegisterTypeHL {
 		c.registers.SetFlags(zflag, 0, hflag, 0xFF)
 	}
-
-	c.writeToRegister(instruction.Register1, data-1)
 }
 
 func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
@@ -369,88 +373,4 @@ func (c *Cpu) execSTOP(_ uint16) {
 
 func (c *Cpu) execHALT() {
 	c.halted = true
-}
-
-func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
-	emu_cycle(1)
-
-	if bitOp := uint8(cbyte >> 6 & 0x03); bitOp != 0 {
-		c.execCB_BitOp(bitOp, Instruction, cbyte)
-		return
-	}
-
-	opCode := uint8(cbyte >> 3 & 0x07)
-	reg := c.cbRegLookup(int(cbyte & 0x07))
-
-	if reg == RegisterTypeHL {
-		emu_cycle(2)
-	}
-
-	var zflag, cflag uint16
-	rbyte := c.readFromRegister(reg)
-
-	switch opCode {
-	case 0: // RLC
-		cflag = (rbyte & 0x80 >> 7)
-		c.writeToRegister(reg, (rbyte<<1)|cflag)
-	case 1: // RRC
-		cflag := rbyte & 0x01
-		c.writeToRegister(reg, (rbyte>>1)|(cflag<<7))
-	case 2: // RL
-		cflag = uint16(rbyte >> 7)
-		c.writeToRegister(reg, (rbyte<<1)|uint16(c.registers.GetFlag(CpuFlagC)))
-	case 3: // RR
-		cflag = uint16(rbyte & 0x01)
-		c.writeToRegister(reg, (rbyte<<1)|uint16(c.registers.GetFlag(CpuFlagC)<<7&0xFF))
-	case 4: // SLA
-		cflag = uint16(rbyte >> 7)
-		c.writeToRegister(reg, (rbyte<<1)&0xFF)
-	case 5: // SRA
-		msb := rbyte & 0x80
-		cflag = uint16(rbyte & 0x01)
-		c.writeToRegister(reg, (rbyte>>1)|msb)
-	case 6: // SWAP
-		c.writeToRegister(reg, (rbyte<<4&0xF0)|(rbyte>>4&0x0F))
-	case 7: // SRL
-		cflag = uint16(rbyte & 0x01)
-		c.writeToRegister(reg, (rbyte>>1)&0x7F)
-	}
-
-	if c.readFromRegister(reg) == 0 {
-		zflag = 1
-	}
-
-	c.registers.SetFlags(uint8(zflag), 0, 0, uint8(cflag))
-}
-
-func (c *Cpu) execCB_BitOp(bitOp uint8, instruction CpuInstriction, cbyte uint16) {
-	idx := uint8(cbyte >> 3 & 0x07)
-	reg := c.cbRegLookup(int(cbyte & 0x07))
-
-	if reg == RegisterTypeHL {
-		emu_cycle(2)
-	}
-
-	switch bitOp {
-	case 0x1: // BIT
-		c.registers.SetFlags(uint8(c.readFromRegister(reg)>>idx&0x01), 0, 1, 0xFF)
-	case 0x2: // RES
-		mask := ^uint16(1 << idx)
-		c.writeToRegister(reg, c.readFromRegister(reg)&mask)
-	case 0x3: // SET
-		c.writeToRegister(reg, c.readFromRegister(reg)|1<<idx)
-	}
-}
-
-func (c *Cpu) cbRegLookup(i int) RegisterType {
-	return []RegisterType{
-		RegisterTypeB,
-		RegisterTypeC,
-		RegisterTypeD,
-		RegisterTypeE,
-		RegisterTypeH,
-		RegisterTypeL,
-		RegisterTypeHL,
-		RegisterTypeA,
-	}[0]
 }

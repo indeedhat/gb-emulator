@@ -171,7 +171,7 @@ var CpuInstructions = []CpuInstriction{
 	0x13: {InstructionTypeINC, AddressModeR, RegisterTypeDE, 0, 0, 0},
 	0x14: {InstructionTypeINC, AddressModeR, RegisterTypeD, 0, 0, 0},
 	0x15: {InstructionTypeDEC, AddressModeR, RegisterTypeD, 0, 0, 0},
-	0x16: {InstructionTypeLD, AddressModeMR_N8, RegisterTypeD, 0, 0, 0},
+	0x16: {InstructionTypeLD, AddressModeR_N8, RegisterTypeD, 0, 0, 0},
 	0x17: {InstructionTypeRLA, 0, 0, 0, 0, 0},
 	0x18: {InstructionTypeJR, AddressModeN8, 0, 0, 0, 0},
 	0x19: {InstructionTypeADD, AddressModeR_R, RegisterTypeHL, RegisterTypeDE, 0, 0},
@@ -366,7 +366,7 @@ var CpuInstructions = []CpuInstriction{
 	0xCB: {InstructionTypeCB, AddressModeN8, 0, 0, 0, 0},
 	0xCC: {InstructionTypeCALL, AddressModeN16, 0, 0, ConditionTypeZ, 0},
 	0xCD: {InstructionTypeCALL, AddressModeN16, 0, 0, 0, 0},
-	0xCE: {InstructionTypeSUB, AddressModeR_N8, RegisterTypeA, 0, 0, 0},
+	0xCE: {InstructionTypeADC, AddressModeR_N8, RegisterTypeA, 0, 0, 0},
 	0xCF: {InstructionTypeRST, 0, 0, 0, 0, 0x08},
 
 	0xD0: {InstructionTypeRET, 0, 0, 0, ConditionTypeNC, 0},
@@ -380,7 +380,7 @@ var CpuInstructions = []CpuInstriction{
 	0xD9: {InstructionTypeRETI, 0, 0, 0, 0, 0},
 	0xDA: {InstructionTypeJP, AddressModeN16, 0, 0, ConditionTypeC, 0},
 	0xDC: {InstructionTypeCALL, AddressModeN16, 0, 0, ConditionTypeC, 0},
-	0xDE: {InstructionTypeADD, AddressModeR_N8, RegisterTypeA, 0, 0, 0},
+	0xDE: {InstructionTypeSBC, AddressModeR_N8, RegisterTypeA, 0, 0, 0},
 	0xDF: {InstructionTypeRST, 0, 0, 0, 0, 0x18},
 
 	0xE0: {InstructionTypeLDH, AddressModeA8_R, RegisterTypeNone, RegisterTypeA, 0, 0},
@@ -391,7 +391,7 @@ var CpuInstructions = []CpuInstriction{
 	0xE7: {InstructionTypeRST, 0, 0, 0, 0, 0x20},
 	0xE8: {InstructionTypeADD, AddressModeR_N8, RegisterTypeSP, 0, 0, 0},
 	0xE9: {InstructionTypeJP, AddressModeR, RegisterTypeHL, 0, 0, 0},
-	0xEA: {InstructionTypeLD, AddressModeA8_R, RegisterTypeNone, RegisterTypeA, 0, 0},
+	0xEA: {InstructionTypeLD, AddressModeA16_R, RegisterTypeNone, RegisterTypeA, 0, 0},
 	0xEE: {InstructionTypeXOR, AddressModeR_N8, RegisterTypeA, 0, 0, 0},
 	0xEF: {InstructionTypeRST, 0, 0, 0, 0, 0x28},
 

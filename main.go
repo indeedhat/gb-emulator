@@ -12,5 +12,10 @@ func main() {
 
 	e := Emulator{}
 
+	fh, err := os.Create("mem-t.log")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(fh)
 	log.Print(e.Run(os.Args[1]))
 }
