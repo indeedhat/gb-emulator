@@ -2,8 +2,6 @@ package main
 
 // https://gbdev.io/gb-opcodes/optables/
 
-import "fmt"
-
 type InstructionType byte
 
 func (i InstructionType) String() string {
@@ -25,7 +23,7 @@ func (i InstructionType) String() string {
 		"CB_RL", "CB_RR", "CB_SLA",
 		"CB_SRA", "CB_SWAP", "CB_SRL",
 		"CB_BIT", "CB_RES", "CB_SET",
-	}[i] + fmt.Sprintf("(0x%X)", uint8(i))
+	}[i]
 }
 
 const (

@@ -37,13 +37,13 @@ func (c *Cpu) readFromRegister(r RegisterType) uint16 {
 	case RegisterTypeL:
 		return uint16(c.registers.L)
 	case RegisterTypeAF:
-		return uint16(c.registers.F)<<8 | uint16(c.registers.A)
+		return uint16(c.registers.A)<<8 | uint16(c.registers.F)
 	case RegisterTypeBC:
-		return uint16(c.registers.C)<<8 | uint16(c.registers.B)
+		return uint16(c.registers.B)<<8 | uint16(c.registers.C)
 	case RegisterTypeDE:
-		return uint16(c.registers.E)<<8 | uint16(c.registers.D)
+		return uint16(c.registers.D)<<8 | uint16(c.registers.E)
 	case RegisterTypeHL:
-		return uint16(c.registers.L)<<8 | uint16(c.registers.H)
+		return uint16(c.registers.H)<<8 | uint16(c.registers.L)
 	case RegisterTypeSP:
 		return c.registers.SP
 	case RegisterTypePC:
@@ -74,14 +74,14 @@ func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
 		c.registers.F = uint8(val)
 		c.registers.A = uint8(val >> 8)
 	case RegisterTypeBC:
-		c.registers.B = uint8(val)
-		c.registers.C = uint8(val >> 8)
+		c.registers.C = uint8(val)
+		c.registers.B = uint8(val >> 8)
 	case RegisterTypeDE:
-		c.registers.D = uint8(val)
-		c.registers.E = uint8(val >> 8)
+		c.registers.E = uint8(val)
+		c.registers.D = uint8(val >> 8)
 	case RegisterTypeHL:
-		c.registers.H = uint8(val)
-		c.registers.L = uint8(val >> 8)
+		c.registers.L = uint8(val)
+		c.registers.H = uint8(val >> 8)
 	case RegisterTypeSP:
 		c.registers.SP = val
 	case RegisterTypePC:
