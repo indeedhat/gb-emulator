@@ -36,20 +36,23 @@ func (c *Cpu) String() string {
 
 	opcode := CpuInstructions[c.membus.Read(c.registers.PC)]
 
-	return fmt.Sprintf("[PC: 0x%04X] %v\t (0x%02X%02X) %s%s%s%s | A 0x%02X | BC 0x%04X | DE 0x%04X | HL 0x%04X | SP 0x%04X |",
+	return fmt.Sprintf("00000000 - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n",
 		c.registers.PC,
 		opcode.Type,
+		c.membus.Read(c.registers.PC),
 		c.membus.Read(c.registers.PC+1),
 		c.membus.Read(c.registers.PC+2),
+		c.registers.A,
 		zf,
 		nf,
 		hf,
 		cf,
-		c.registers.A,
-		c.readFromRegister(RegisterTypeBC),
-		c.readFromRegister(RegisterTypeDE),
-		c.readFromRegister(RegisterTypeHL),
-		c.readFromRegister(RegisterTypeSP),
+		c.registers.B,
+		c.registers.C,
+		c.registers.D,
+		c.registers.E,
+		c.registers.H,
+		c.registers.L,
 	)
 }
 

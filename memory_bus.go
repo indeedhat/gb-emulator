@@ -104,7 +104,7 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		b.HRam.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		log.Print("unsupported mem.write 0xFFFF")
+		// log.Print("unsupported mem.write 0xFFFF")
 	default:
 		log.Printf("unsupported mem.write 0x%X", address)
 	}

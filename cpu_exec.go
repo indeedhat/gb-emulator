@@ -12,9 +12,9 @@ func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 }
 
 func (c *Cpu) execJR(instruction CpuInstriction, data uint16) {
-	offset := int8(data & 0xFF)
+	offset := int8(uint8(data & 0xFF))
 	// NB: this mess handles the int/uint conversions properly without having to resort to unsafe pointers
-	c.execJP(instruction, uint16(int16(c.registers.PC)+int16(offset)))
+	c.execJP(instruction, uint16(int16((int32(c.registers.PC)+int32(offset))&0xFFFF)))
 }
 
 func (c *Cpu) execXOR(data uint16) {
@@ -67,46 +67,56 @@ func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuD
 }
 
 func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+	data++
 	if instruction.Register1.Is16bit() {
 		emu_cycle(1)
-		data++
-	} else {
-		data = uint16(uint8(data&0xFF)) + 1
 	}
 
-	var zflag, hflag uint8
+	if destAddress != nil || !instruction.Register1.Is16bit() {
+		data &= 0x00FF
+	}
+
+	var zflag uint8
+	if data == 0 {
+		zflag = 1
+	}
+	hflag := halfCarry(data-1, 1, data)
 
 	if nil != destAddress {
 		c.membus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
-		hflag = halfCarry(data-1, 1, data)
 	}
 
-	if !instruction.Register1.Is16bit() || instruction.Register1 == RegisterTypeHL {
+	if !instruction.Register1.Is16bit() || destAddress != nil {
 		c.registers.SetFlags(zflag, 0, hflag, 0xFF)
 	}
 }
 
 func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+	data--
 	if instruction.Register1.Is16bit() {
 		emu_cycle(1)
-		data--
-	} else {
-		data = uint16(uint8(data&0xFF)) - 1
 	}
 
-	var zflag, hflag uint8
+	if destAddress != nil || !instruction.Register1.Is16bit() {
+		data &= 0x00FF
+	}
+
+	var zflag uint8
+	if data == 0 {
+		zflag = 1
+	}
+	hflag := halfCarry(data+1, 1, data)
 
 	if nil != destAddress {
 		c.membus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
-		hflag = halfCarry(data+1, 1, data)
 	}
 
-	if !instruction.Register1.Is16bit() || instruction.Register1 == RegisterTypeHL {
-		c.registers.SetFlags(zflag, 0, hflag, 0xFF)
+	if !instruction.Register1.Is16bit() || destAddress != nil {
+		c.registers.SetFlags(zflag, 1, hflag, 0xFF)
 	}
 }
 
@@ -252,7 +262,7 @@ func (c *Cpu) execCP(instruction CpuInstriction, data uint16) {
 	}
 
 	hflag := halfCarry(data, rval, final)
-	cflag := halfCarry(data, rval, final)
+	cflag := carry(data, rval, final)
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
 }
 

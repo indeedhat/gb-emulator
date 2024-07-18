@@ -1,21 +1,30 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 )
 
+var logFile string
+
 func main() {
-	if len(os.Args) < 2 {
+	flag.StringVar(&logFile, "log", "", "save log to file")
+	flag.Parse()
+
+	if len(flag.Args()) < 1 {
 		log.Fatal("must pass a path to a .gb rom")
 	}
 
 	e := Emulator{}
 
-	fh, err := os.Create("mem-t.log")
-	if err != nil {
-		log.Fatal(err)
+	if logFile != "" {
+		fh, err := os.Create(logFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.SetOutput(fh)
 	}
-	log.SetOutput(fh)
-	log.Print(e.Run(os.Args[1]))
+	log.Print(e.Run(flag.Arg(0)))
 }
