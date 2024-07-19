@@ -1,6 +1,8 @@
 package main
 
-import "log"
+import (
+	"log"
+)
 
 // 0x0000 - 0x3FFF:   16 KiB ROM bank 00              From cartridge, usually a fixed bank
 // 0x4000 - 0x7FFF:   16 KiB ROM Bank 01–NN           From cartridge, switchable bank via mapper (if any)
@@ -66,7 +68,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		return b.hram.Read(address)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		log.Print("unsupported mem.read 0xFFFF")
+		return b.ctx.cpu.interruptRegister
 	default:
 		log.Printf("unsupported mem.read 0x%X", address)
 	}
@@ -102,10 +104,11 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		b.ctx.io.Write(address, value)
 	case address < 0xFFFF:
 		// high ram/zero page
+		log.Printf("HRAMW %04x %02x", address, value)
 		b.hram.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		// log.Print("unsupported mem.write 0xFFFF")
+		b.ctx.cpu.interruptRegister = value
 	default:
 		log.Printf("unsupported mem.write 0x%X", address)
 	}

@@ -1,7 +1,7 @@
 package main
 
 const (
-	InterruptVBlank uint8 = iota
+	InterruptVBlank uint8 = 1 << iota
 	InterruptLcdStat
 	InterruptTimer
 	InterruptSerial
@@ -9,7 +9,7 @@ const (
 )
 
 func (c *Cpu) requestInterrupt(itype uint8) {
-	c.interuptFlags |= itype
+	c.interruptFlags |= itype
 }
 
 func (c *Cpu) handleInterrupts() {
@@ -21,13 +21,13 @@ func (c *Cpu) handleInterrupts() {
 }
 
 func (c *Cpu) attempInterrupt(interrupt uint8, addr uint16) bool {
-	if c.interuptFlags&c.interruptRegister&interrupt != interrupt {
+	if c.interruptFlags&c.interruptRegister&interrupt == 0 {
 		return false
 	}
 
 	c.stackPush(c.registers.PC)
 	c.registers.PC = addr
-	c.interuptFlags &= ^interrupt
+	c.interruptFlags &= ^interrupt
 	c.halted = false
 	c.ime = false
 
