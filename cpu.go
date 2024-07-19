@@ -8,7 +8,6 @@ import (
 
 type Cpu struct {
 	registers *cpuRegisters
-	membus    *MemoryBus
 
 	halted bool
 
@@ -17,9 +16,30 @@ type Cpu struct {
 	enablingIME       bool
 	interuptFlags     uint8
 	interruptRegister uint8
+
+	ctx *Context
 }
 
-func (c *Cpu) String() string {
+func NewCpu(ctx *Context) {
+	ctx.cpu = &Cpu{
+		registers: &cpuRegisters{
+			PC: 0x100,
+			SP: 0xFFFE,
+			A:  0xB0,
+			F:  0x01,
+			B:  0x13,
+			C:  0x00,
+			D:  0xD8,
+			E:  0x00,
+			H:  0x4D,
+			L:  0x01,
+		},
+		ime: true,
+		ctx: ctx,
+	}
+}
+
+func (c *Cpu) String(pc uint16) string {
 	zf, hf, nf, cf := "-", "-", "-", "-"
 	if c.registers.GetFlag(CpuFlagZ) == 1 {
 		zf = "Z"
@@ -34,14 +54,15 @@ func (c *Cpu) String() string {
 		cf = "C"
 	}
 
-	opcode := CpuInstructions[c.membus.Read(c.registers.PC)]
+	opcode := CpuInstructions[c.ctx.membus.Read(pc)]
 
-	return fmt.Sprintf("00000000 - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n",
-		c.registers.PC,
+	return fmt.Sprintf("%08X - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n",
+		c.ctx.ticks,
+		pc,
 		opcode.Type,
-		c.membus.Read(c.registers.PC),
-		c.membus.Read(c.registers.PC+1),
-		c.membus.Read(c.registers.PC+2),
+		c.ctx.membus.Read(pc),
+		c.ctx.membus.Read(pc+1),
+		c.ctx.membus.Read(pc+2),
 		c.registers.A,
 		zf,
 		nf,
@@ -56,28 +77,17 @@ func (c *Cpu) String() string {
 	)
 }
 
-func NewCpu(bus *MemoryBus) *Cpu {
-	return &Cpu{
-		registers: &cpuRegisters{
-			PC: 0x100,
-			A:  0x01,
-			SP: 0xFFFE,
-		},
-		membus: bus,
-		ime:    true,
-	}
-}
-
 func (c *Cpu) Step() error {
 	if c.halted {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 		if c.interuptFlags != 0 {
 			c.halted = false
 		}
 	} else {
-		log.Print(c)
+		pc := c.registers.PC
 		_, instruction := c.fetchIsntruction()
 		data, destAddress := c.fetchData(instruction)
+		log.Print(c.String(pc))
 		c.executeInstruction(instruction, data, destAddress)
 	}
 
@@ -90,6 +100,9 @@ func (c *Cpu) Step() error {
 		c.ime = true
 	}
 
+	c.ctx.debug.Update()
+	c.ctx.debug.Print()
+
 	return nil
 }
 
@@ -98,7 +111,7 @@ func (c *Cpu) interruptHandler() {
 }
 
 func (c *Cpu) stackPop() uint16 {
-	val := c.membus.Read16(c.registers.SP)
+	val := c.ctx.membus.Read16(c.registers.SP)
 	c.registers.SP += 2
 
 	return val
@@ -106,14 +119,14 @@ func (c *Cpu) stackPop() uint16 {
 
 func (c *Cpu) stackPush(value uint16) {
 	c.registers.SP--
-	c.membus.Write(c.registers.SP, uint8(value>>8))
+	c.ctx.membus.Write(c.registers.SP, uint8(value>>8))
 
 	c.registers.SP--
-	c.membus.Write(c.registers.SP, uint8(value))
+	c.ctx.membus.Write(c.registers.SP, uint8(value))
 }
 
 func (c *Cpu) fetchIsntruction() (uint8, CpuInstriction) {
-	opcode := c.membus.Read(c.registers.PC)
+	opcode := c.ctx.membus.Read(c.registers.PC)
 	c.registers.PC++
 
 	return opcode, CpuInstructions[opcode]
@@ -134,8 +147,8 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 	case AddressModeR_N16:
 		fallthrough
 	case AddressModeN16:
-		data = c.membus.Read16(c.registers.PC)
-		emu_cycle(2)
+		data = c.ctx.membus.Read16(c.registers.PC)
+		c.ctx.EmuCycle(2)
 		c.registers.PC += 2
 
 	case AddressModeHL_SPR:
@@ -145,9 +158,9 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 	case AddressModeR_N8:
 		fallthrough
 	case AddressModeN8:
-		data = uint16(c.membus.Read(c.registers.PC))
+		data = uint16(c.ctx.membus.Read(c.registers.PC))
 		c.registers.PC++
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 
 	case AddressModeMR_R:
 		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
@@ -161,35 +174,35 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 		if instruction.Register2 == RegisterTypeC {
 			address |= 0xFF00
 		}
-		data = uint16(c.membus.Read(address))
-		emu_cycle(1)
+		data = uint16(c.ctx.membus.Read(address))
+		c.ctx.EmuCycle(1)
 
 	case AddressModeA8_R:
-		destAddr = &CpuDestAddress{uint16(c.membus.Read(c.registers.PC)) | 0xFF00}
+		destAddr = &CpuDestAddress{uint16(c.ctx.membus.Read(c.registers.PC)) | 0xFF00}
 		c.registers.PC++
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 
 	case AddressModeMR:
 		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
-		data = uint16(c.membus.Read(c.readFromRegister(instruction.Register1)))
-		emu_cycle(1)
+		data = uint16(c.ctx.membus.Read(c.readFromRegister(instruction.Register1)))
+		c.ctx.EmuCycle(1)
 
 	case AddressModeMR_N8:
 		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
-		data = uint16(c.membus.Read(c.registers.PC))
+		data = uint16(c.ctx.membus.Read(c.registers.PC))
 		c.registers.PC++
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 
 	case AddressModeR_HLI:
 		hl := c.readFromRegister(RegisterTypeHL)
-		data = uint16(c.membus.Read(hl))
-		emu_cycle(1)
+		data = uint16(c.ctx.membus.Read(hl))
+		c.ctx.EmuCycle(1)
 		c.writeToRegister(RegisterTypeHL, hl+1)
 
 	case AddressModeR_HLD:
 		hl := c.readFromRegister(RegisterTypeHL)
-		data = uint16(c.membus.Read(hl))
-		emu_cycle(1)
+		data = uint16(c.ctx.membus.Read(hl))
+		c.ctx.EmuCycle(1)
 		c.writeToRegister(RegisterTypeHL, hl-1)
 
 	case AddressModeHLI_R:
@@ -206,17 +219,17 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 
 	case AddressModeA16_R:
 		destAddr = &CpuDestAddress{
-			c.membus.Read16(c.registers.PC),
+			c.ctx.membus.Read16(c.registers.PC),
 		}
-		emu_cycle(2)
+		c.ctx.EmuCycle(2)
 		c.registers.PC += 2
 		data = c.readFromRegister(instruction.Register2)
 
 	case AddressModeR_A16:
-		addr := c.membus.Read16(c.registers.PC)
+		addr := c.ctx.membus.Read16(c.registers.PC)
 		c.registers.PC += 2
-		data = uint16(c.membus.Read(addr))
-		emu_cycle(3)
+		data = uint16(c.ctx.membus.Read(addr))
+		c.ctx.EmuCycle(3)
 	}
 
 	return data, destAddr

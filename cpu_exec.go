@@ -7,7 +7,7 @@ import (
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 	if c.registers.CheckFlag(instruction.Condition) {
 		c.registers.PC = data
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 }
 
@@ -37,10 +37,10 @@ func (c *Cpu) execEI() {
 func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	if nil != destAddress {
 		if instruction.Register2.Is16bit() {
-			c.membus.Write16(destAddress.Address, data)
-			emu_cycle(1)
+			c.ctx.membus.Write16(destAddress.Address, data)
+			c.ctx.EmuCycle(1)
 		} else {
-			c.membus.Write(destAddress.Address, uint8(data&0xFF))
+			c.ctx.membus.Write(destAddress.Address, uint8(data&0xFF))
 		}
 
 		return
@@ -60,16 +60,16 @@ func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDe
 
 func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	if instruction.Register1 == RegisterTypeA {
-		c.writeToRegister(RegisterTypeA, uint16(c.membus.Read(0xFF00|data)&0xFF))
+		c.writeToRegister(RegisterTypeA, uint16(c.ctx.membus.Read(0xFF00|data)&0xFF))
 	} else {
-		c.membus.Write(destAddress.Address, c.registers.A)
+		c.ctx.membus.Write(destAddress.Address, c.registers.A)
 	}
 }
 
 func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	data++
 	if instruction.Register1.Is16bit() {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 
 	if destAddress != nil || !instruction.Register1.Is16bit() {
@@ -83,7 +83,7 @@ func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	hflag := halfCarry(data-1, 1, data)
 
 	if nil != destAddress {
-		c.membus.Write(destAddress.Address, uint8(data))
+		c.ctx.membus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
 	}
@@ -96,7 +96,7 @@ func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuD
 func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	data--
 	if instruction.Register1.Is16bit() {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 
 	if destAddress != nil || !instruction.Register1.Is16bit() {
@@ -110,7 +110,7 @@ func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	hflag := halfCarry(data+1, 1, data)
 
 	if nil != destAddress {
-		c.membus.Write(destAddress.Address, uint8(data))
+		c.ctx.membus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
 	}
@@ -145,24 +145,17 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 }
 
 func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) {
-	if instruction.Register2 == RegisterTypeA {
-		c.writeToRegister(instruction.Register1, 0)
-		c.registers.SetFlags(1, 1, 0, 0)
-		return
-	}
-
 	rval := c.readFromRegister(instruction.Register1)
-	final := uint8(rval - data)
-
-	c.writeToRegister(instruction.Register1, uint16(data))
+	final := rval - data
 
 	var zflag uint8
 	if final == 0 {
 		zflag = 1
 	}
+	hflag := halfCarry(rval, data, final)
+	cflag := carry(rval, data, final)
 
-	hflag := halfCarry(data, rval, rval-data)
-	cflag := halfCarry(data, rval, rval-data)
+	c.writeToRegister(instruction.Register1, final)
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
 }
 
@@ -201,7 +194,7 @@ func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) {
 func (c *Cpu) execAND(Instruction CpuInstriction, data uint16) {
 	c.registers.A &= uint8(data)
 	if Instruction.AddressMode != AddressModeR_R {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 
 	var zflag uint8
@@ -215,7 +208,7 @@ func (c *Cpu) execAND(Instruction CpuInstriction, data uint16) {
 func (c *Cpu) execOR(Instruction CpuInstriction, data uint16) {
 	c.registers.A |= uint8(data)
 	if Instruction.AddressMode != AddressModeR_R {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 
 	var zflag uint8
@@ -233,7 +226,7 @@ func (c *Cpu) execCALL(instruction CpuInstriction, data uint16) {
 
 	c.stackPush(c.registers.PC)
 	c.registers.PC = data
-	emu_cycle(3)
+	c.ctx.EmuCycle(3)
 }
 
 func (c *Cpu) execCCF() {
@@ -246,7 +239,7 @@ func (c *Cpu) execCCF() {
 
 func (c *Cpu) execCP(instruction CpuInstriction, data uint16) {
 	if instruction.AddressMode != AddressModeR_R {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 	}
 	if instruction.Register2 == RegisterTypeA {
 		c.registers.SetFlags(1, 1, 0, 0)
@@ -302,7 +295,7 @@ func (c *Cpu) execDAA() {
 
 func (c *Cpu) execPOP(Instruction CpuInstriction) {
 	data := c.stackPop()
-	emu_cycle(2)
+	c.ctx.EmuCycle(2)
 
 	if Instruction.Register1 == RegisterTypeAF {
 		c.writeToRegister(Instruction.Register1, data&0xFFF0)
@@ -313,15 +306,15 @@ func (c *Cpu) execPOP(Instruction CpuInstriction) {
 
 func (c *Cpu) execPUSH(Instruction CpuInstriction) {
 	data := c.readFromRegister(Instruction.Register1)
-	emu_cycle(2)
+	c.ctx.EmuCycle(2)
 
 	c.stackPush(data)
-	emu_cycle(1)
+	c.ctx.EmuCycle(1)
 }
 
 func (c *Cpu) execRET(instruction CpuInstriction) {
 	if instruction.Condition != ConditionTypeNone {
-		emu_cycle(1)
+		c.ctx.EmuCycle(1)
 
 		if !c.registers.CheckFlag(instruction.Condition) {
 			return
@@ -329,7 +322,7 @@ func (c *Cpu) execRET(instruction CpuInstriction) {
 	}
 
 	data := c.stackPop()
-	emu_cycle(3)
+	c.ctx.EmuCycle(3)
 
 	c.registers.PC = data
 }
@@ -370,7 +363,7 @@ func (c *Cpu) execRST(instruction CpuInstriction) {
 
 	c.stackPush(c.registers.PC)
 	c.registers.PC = uint16(instruction.Param) & 0x0F
-	emu_cycle(3)
+	c.ctx.EmuCycle(3)
 }
 
 func (c *Cpu) execSCF() {
