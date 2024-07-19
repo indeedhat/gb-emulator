@@ -1,6 +1,6 @@
 package main
 
-func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
+func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) {
 	c.ctx.EmuCycle(1)
 
 	if bitOp := uint8(cbyte >> 6 & 0x03); bitOp != 0 {
@@ -30,7 +30,7 @@ func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
 		c.cbWriteRegister(reg, (rbyte<<1)|c.registers.GetFlag(CpuFlagC))
 	case 3: // RR
 		cflag = uint8(rbyte & 0x01)
-		c.cbWriteRegister(reg, (rbyte<<1)|c.registers.GetFlag(CpuFlagC)<<7&0xFF)
+		c.cbWriteRegister(reg, (rbyte>>1)|c.registers.GetFlag(CpuFlagC)<<7&0xFF)
 	case 4: // SLA
 		cflag = uint8(rbyte >> 7)
 		c.cbWriteRegister(reg, (rbyte<<1)&0xFF)

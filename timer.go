@@ -11,6 +11,7 @@ type Timer struct {
 
 func NewTimer(ctx *Context) {
 	ctx.timer = &Timer{
+		div: 0xABCC,
 		ctx: ctx,
 	}
 }
