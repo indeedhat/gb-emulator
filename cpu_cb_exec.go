@@ -1,7 +1,7 @@
 package main
 
 func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
-	emu_cycle(1)
+	c.ctx.EmuCycle(1)
 
 	if bitOp := uint8(cbyte >> 6 & 0x03); bitOp != 0 {
 		c.execCB_BitOp(bitOp, cbyte)
@@ -12,7 +12,7 @@ func (c *Cpu) execCB(Instruction CpuInstriction, cbyte uint16) {
 	reg := c.cbRegLookup(cbyte & 0x07)
 
 	if reg == RegisterTypeHL {
-		emu_cycle(2)
+		c.ctx.EmuCycle(2)
 	}
 
 	var zflag, cflag uint8
@@ -57,7 +57,7 @@ func (c *Cpu) execCB_BitOp(bitOp uint8, cbyte uint16) {
 	reg := c.cbRegLookup(cbyte & 0x07)
 
 	if reg == RegisterTypeHL {
-		emu_cycle(2)
+		c.ctx.EmuCycle(2)
 	}
 
 	switch bitOp {
@@ -105,7 +105,7 @@ func (c *Cpu) cbReadRegister(reg RegisterType) uint8 {
 	case RegisterTypeL:
 		return c.registers.L
 	case RegisterTypeHL:
-		return c.membus.Read(c.readFromRegister(RegisterTypeHL))
+		return c.ctx.membus.Read(c.readFromRegister(RegisterTypeHL))
 	default:
 		return 0
 	}
@@ -128,6 +128,6 @@ func (c *Cpu) cbWriteRegister(reg RegisterType, val uint8) {
 	case RegisterTypeL:
 		c.registers.L = val
 	case RegisterTypeHL:
-		c.membus.Write(c.readFromRegister(RegisterTypeHL), val)
+		c.ctx.membus.Write(c.readFromRegister(RegisterTypeHL), val)
 	}
 }

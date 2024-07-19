@@ -7,7 +7,8 @@ import (
 type Emulator struct {
 	running bool
 	paused  bool
-	ticks   uint64
+
+	ctx *Context
 }
 
 func (e *Emulator) Run(romPath string) error {
@@ -18,8 +19,15 @@ func (e *Emulator) Run(romPath string) error {
 		return err
 	}
 
-	memory := NewMemoryBus(cartridge)
-	cpu := NewCpu(memory)
+	e.ctx = &Context{cart: cartridge}
+
+	NewMemoryBus(e.ctx)
+	NewCpu(e.ctx)
+	NewDebug(e.ctx)
+	NewTimer(e.ctx)
+	NewIO(e.ctx)
+
+	e.ctx.debug.enbled = true
 
 	for {
 		if e.paused {
@@ -27,16 +35,8 @@ func (e *Emulator) Run(romPath string) error {
 			continue
 		}
 
-		if err := cpu.Step(); err != nil {
+		if err := e.ctx.cpu.Step(); err != nil {
 			return err
 		}
-
-		e.ticks++
 	}
-
-	return nil
-}
-
-func emu_cycle(i int) {
-
 }

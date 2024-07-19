@@ -16,38 +16,39 @@ import "log"
 // 0xFFFF - 0xFFFF:   Interrupt Enable register (IE)
 
 type MemoryBus struct {
-	Cart *Cartridge
-	HRam *RamBank
-	WRam *RamBank
+	hram *RamBank
+	wram *RamBank
+
+	ctx *Context
 }
 
-func NewMemoryBus(cart *Cartridge) *MemoryBus {
-	return &MemoryBus{
-		Cart: cart,
-		HRam: &RamBank{
+func NewMemoryBus(ctx *Context) {
+	ctx.membus = &MemoryBus{
+		hram: &RamBank{
 			offset: 0xFF80,
 			data:   make([]byte, 0x80),
 		},
-		WRam: &RamBank{
+		wram: &RamBank{
 			offset: 0xC000,
 			data:   make([]byte, 0x2000),
 		},
+		ctx: ctx,
 	}
 }
 
 func (b *MemoryBus) Read(address uint16) uint8 {
 	switch true {
 	case address < 0x8000:
-		return b.Cart.Read(address)
+		return b.ctx.cart.Read(address)
 	case address < 0xA000:
 		// tile data
 		log.Printf("unsupported mem.read (Tile) 0x%X", address)
 	case address < 0xC000:
 		// cart ram
-		return b.Cart.Read(address)
+		return b.ctx.cart.Read(address)
 	case address < 0xE000:
 		// working ram
-		return b.WRam.Read(address)
+		return b.wram.Read(address)
 	case address < 0xFE00:
 		// Echo ram is unusable
 		return 0
@@ -59,10 +60,10 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		return 0
 	case address < 0xFF80:
 		// IO registers
-		log.Printf("unsupported mem.read (IO) 0x%X", address)
+		return b.ctx.io.Read(address)
 	case address < 0xFFFF:
 		// high ram/zero page
-		return b.HRam.Read(address)
+		return b.hram.Read(address)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
 		log.Print("unsupported mem.read 0xFFFF")
@@ -79,16 +80,16 @@ func (b *MemoryBus) Read16(address uint16) uint16 {
 func (b *MemoryBus) Write(address uint16, value uint8) {
 	switch true {
 	case address < 0x8000:
-		b.Cart.Write(address, value)
+		b.ctx.cart.Write(address, value)
 	case address < 0xA000:
 		// tile data
 		log.Printf("unsupported mem.write 0x%X", address)
 	case address < 0xC000:
 		// cart ram
-		b.Cart.Write(address, value)
+		b.ctx.cart.Write(address, value)
 	case address < 0xE000:
 		// working ram
-		b.WRam.Write(address, value)
+		b.wram.Write(address, value)
 	case address < 0xFE00:
 		// Echo ram is unusable
 	case address < 0xFEA0:
@@ -98,10 +99,10 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		// reserved and unusable
 	case address < 0xFF80:
 		// IO registers
-		log.Printf("unsupported mem.write (IO) 0x%X", address)
+		b.ctx.io.Write(address, value)
 	case address < 0xFFFF:
 		// high ram/zero page
-		b.HRam.Write(address, value)
+		b.hram.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
 		// log.Print("unsupported mem.write 0xFFFF")

@@ -71,7 +71,7 @@ func (c *Cpu) writeToRegister(r RegisterType, val uint16) {
 	case RegisterTypeL:
 		c.registers.L = uint8(val)
 	case RegisterTypeAF:
-		c.registers.F = uint8(val)
+		c.registers.F = uint8(val) & 0xF0
 		c.registers.A = uint8(val >> 8)
 	case RegisterTypeBC:
 		c.registers.C = uint8(val)
