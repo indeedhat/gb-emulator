@@ -48,20 +48,17 @@ func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDe
 		offset := int32(int8(uint8(data & 0xFF)))
 		final := uint16(int16((int32(sp) + offset) & 0xFFFF))
 
-		// final := c.readFromRegister(instruction.Register2) + uint16(uint8(data))
-		hflag := halfCarry(sp, data, final)
-		cflag := carry(sp, data, final)
+		var hflag, cflag uint8
+		if sp&0xF+data&0xF >= 0x10 {
+			hflag = 1
+		}
+		if sp&0xFF+data&0xFF >= 0x100 {
+			cflag = 1
+		}
 		c.registers.SetFlags(0, 0, hflag, cflag)
 		c.writeToRegister(RegisterTypeHL, final)
 		return
 	}
-
-	// if c.ctx.ticks == 0x0006136C {
-	// 	hl := c.readFromRegister(RegisterTypeHL)
-	// 	log.Print(instruction, data, destAddress, c.ctx.membus.Read(hl<<8|hl>>8), hl, hl<<8|hl>>8)
-	// 	log.Print(c.ctx.membus.hram.data)
-	// 	// panic("")
-	// }
 
 	c.writeToRegister(instruction.Register1, data)
 }
@@ -133,21 +130,25 @@ func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuD
 func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 	var zflag, hflag, cflag uint8
 	rval := c.readFromRegister(instruction.Register1)
+	final := rval + data
 
-	if instruction.Register1.Is16bit() {
+	if instruction.Register1 == RegisterTypeSP {
 		c.ctx.EmuCycle(1)
-		c.writeToRegister(instruction.Register1, rval+data)
-
-		if instruction.Register1 != RegisterTypeSP {
-			zflag = 0xFF
+		final = uint16(int16(rval) + int16(int8(data&0xFF)))
+		hflag = halfCarry(data, rval, rval+data)
+		if rval&0xF+data&0xF >= 0x10 {
+			hflag = 1
 		}
-
-		hflag = halfCarry16(data, rval)
-		cflag = carry16(data, rval)
+		if int16(rval&0xFF)+int16(data&0xFF) >= 0x100 {
+			cflag = 1
+		}
+	} else if instruction.Register1.Is16bit() {
+		c.ctx.EmuCycle(1)
+		zflag = 0xFF
+		hflag = halfCarry16(rval, data)
+		cflag = carry16(rval, data)
 	} else {
-		final := uint8(rval + data)
-		c.writeToRegister(instruction.Register1, uint16(final))
-
+		final &= 0xFF
 		if final == 0 {
 			zflag = 1
 		}
@@ -156,6 +157,7 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 		cflag = carry(data, rval, rval+data)
 	}
 
+	c.writeToRegister(instruction.Register1, final)
 	c.registers.SetFlags(zflag, 0, hflag, cflag)
 }
 

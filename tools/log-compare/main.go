@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var lineRE = regexp.MustCompile(`HL: [\dA-F]{4}$`)
+var lineRE = regexp.MustCompile(`SP: [\dA-F]{4}$`)
 var whitespaceRE = regexp.MustCompile(`\s+`)
 var continueRE = regexp.MustCompile(`^\([\dA-F]{2}$`)
 
