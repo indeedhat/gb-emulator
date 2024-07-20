@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 	if c.registers.CheckFlag(instruction.Condition) {
 		c.registers.PC = data
@@ -379,7 +375,9 @@ func (c *Cpu) execSCF() {
 }
 
 func (c *Cpu) execSTOP(_ uint16) {
-	fmt.Println("execSTOP")
+	// writing to the timers div register resets it
+	c.ctx.membus.Write(0xFF04, 0x01)
+	panic("not implemented")
 }
 
 func (c *Cpu) execHALT() {

@@ -22,7 +22,7 @@ func (t *Timer) Tick() {
 
 	var (
 		clockDivider uint16
-		tacDivider   uint8 = 1 << 2
+		tacDivider   uint8 = 0x4
 		clockSelect        = t.tac & 0x3
 	)
 
@@ -41,7 +41,7 @@ func (t *Timer) Tick() {
 		(t.div&clockDivider) != clockDivider &&
 		(t.tac&tacDivider) == tacDivider {
 
-		t.tma++
+		t.tima++
 		if t.tima == 0xFF {
 			t.tima = t.tma
 
