@@ -55,7 +55,7 @@ func (c *Cpu) String(pc uint16) string {
 
 	opcode := CpuInstructions[c.ctx.membus.Read(pc)]
 
-	return fmt.Sprintf("%08X - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n",
+	return fmt.Sprintf("%08X - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X SP: %04X\n",
 		c.ctx.ticks,
 		pc,
 		opcode.Type,
@@ -73,6 +73,7 @@ func (c *Cpu) String(pc uint16) string {
 		c.registers.E,
 		c.registers.H,
 		c.registers.L,
+		c.registers.SP,
 	)
 }
 

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"log"
+)
+
 const (
 	CpuFlagZ uint8 = 1 << 7
 	CpuFlagN uint8 = 1 << 6
@@ -161,7 +165,8 @@ func halfCarry16(a, b uint16) uint8 {
 }
 
 func carry16(a, b uint16) uint8 {
-	if uint32(a)+uint32(b) >= 0x10000 {
+	log.Printf("carry16 %d %d %d\n", a, b, uint32(a)+uint32(b))
+	if uint32(a&0xFFFF)+uint32(b&0xFFFF) >= 0x10000 {
 		return 1
 	}
 	return 0
