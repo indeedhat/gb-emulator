@@ -141,6 +141,9 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 		if instruction.Register1 != RegisterTypeSP {
 			zflag = 0xFF
 		}
+
+		hflag = halfCarry16(data, rval)
+		cflag = carry16(data, rval)
 	} else {
 		final := uint8(rval + data)
 		c.writeToRegister(instruction.Register1, uint16(final))
@@ -148,10 +151,11 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 		if final == 0 {
 			zflag = 1
 		}
+
+		hflag = halfCarry(data, rval, rval+data)
+		cflag = carry(data, rval, rval+data)
 	}
 
-	hflag = halfCarry(data, rval, rval+data)
-	cflag = halfCarry(data, rval, rval+data)
 	c.registers.SetFlags(zflag, 0, hflag, cflag)
 }
 
@@ -202,7 +206,7 @@ func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) {
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
 }
 
-func (c *Cpu) execAND(Instruction CpuInstriction, data uint16) {
+func (c *Cpu) execAND(_ CpuInstriction, data uint16) {
 	c.registers.A &= uint8(data)
 
 	var zflag uint8
@@ -213,7 +217,7 @@ func (c *Cpu) execAND(Instruction CpuInstriction, data uint16) {
 	c.registers.SetFlags(zflag, 0, 1, 0)
 }
 
-func (c *Cpu) execOR(Instruction CpuInstriction, data uint16) {
+func (c *Cpu) execOR(_ CpuInstriction, data uint16) {
 	c.registers.A |= uint8(data)
 	var zflag uint8
 	if c.registers.A == 0 {
@@ -277,7 +281,7 @@ func (c *Cpu) execDAA() {
 	}
 
 	if c.registers.GetFlag(CpuFlagC) == 1 ||
-		(c.registers.GetFlag(CpuFlagN) == 0 && c.registers.A > 99) {
+		(c.registers.GetFlag(CpuFlagN) == 0 && c.registers.A > 0x99) {
 
 		adjustment |= 0x60
 		cflag = 1
