@@ -152,3 +152,17 @@ func carry(a, b, result uint16) uint8 {
 	}
 	return 0
 }
+
+func halfCarry16(a, b uint16) uint8 {
+	if a&0xFFF+b&0xFFF >= 0x1000 {
+		return 1
+	}
+	return 0
+}
+
+func carry16(a, b uint16) uint8 {
+	if uint32(a)+uint32(b) >= 0x10000 {
+		return 1
+	}
+	return 0
+}
