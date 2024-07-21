@@ -15,37 +15,43 @@ func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) {
 		c.ctx.EmuCycle(2)
 	}
 
-	var zflag, cflag uint8
+	var zflag, cflag, final uint8
 	rbyte := c.cbReadRegister(reg)
 
 	switch opCode {
 	case 0: // RLC
-		cflag = (rbyte & 0x80 >> 7)
-		c.cbWriteRegister(reg, (rbyte<<1)|cflag)
+		cflag = (rbyte >> 7) & 0x1
+		final = (rbyte << 1) | cflag
 	case 1: // RRC
-		cflag := rbyte & 0x01
-		c.cbWriteRegister(reg, (rbyte>>1)|(cflag<<7))
+		cflag = rbyte & 0x01
+		final = (rbyte >> 1) | (cflag << 7)
 	case 2: // RL
 		cflag = uint8(rbyte >> 7)
-		c.cbWriteRegister(reg, (rbyte<<1)|c.registers.GetFlag(CpuFlagC))
+		final = (rbyte << 1) | c.registers.GetFlag(CpuFlagC)
 	case 3: // RR
 		cflag = uint8(rbyte & 0x01)
-		c.cbWriteRegister(reg, (rbyte>>1)|c.registers.GetFlag(CpuFlagC)<<7&0xFF)
+		final = (rbyte >> 1) | c.registers.GetFlag(CpuFlagC)<<7&0xFF
 	case 4: // SLA
 		cflag = uint8(rbyte >> 7)
-		c.cbWriteRegister(reg, (rbyte<<1)&0xFF)
+		final = (rbyte << 1) & 0xFF
 	case 5: // SRA
 		msb := rbyte & 0x80
 		cflag = uint8(rbyte & 0x01)
-		c.cbWriteRegister(reg, (rbyte>>1)|msb)
+		final = (rbyte >> 1) | msb
 	case 6: // SWAP
-		c.cbWriteRegister(reg, (rbyte<<4&0xF0)|(rbyte>>4&0x0F))
+		final = (rbyte << 4 & 0xF0) | (rbyte >> 4 & 0x0F)
 	case 7: // SRL
 		cflag = uint8(rbyte & 0x01)
-		c.cbWriteRegister(reg, (rbyte>>1)&0x7F)
+		final = (rbyte >> 1) & 0x7F
 	}
 
-	if c.readFromRegister(reg) == 0 {
+	if reg == RegisterTypeHL {
+		c.ctx.membus.Write(c.readFromRegister(RegisterTypeHL), final)
+	} else {
+		c.writeToRegister(reg, uint16(final))
+	}
+
+	if final == 0 {
 		zflag = 1
 	}
 
