@@ -19,10 +19,11 @@ func (i InstructionType) String() string {
 		"CALL", "RETI", "LDH",
 		"JPHL", "DI", "EI",
 		"RST",
-		"CB_RLC", "CB_RRC", "CB_RRCA",
-		"CB_RL", "CB_RR", "CB_SLA",
-		"CB_SRA", "CB_SWAP", "CB_SRL",
-		"CB_BIT", "CB_RES", "CB_SET",
+		// CB
+		"RLC", "RRC", "RRCA",
+		"RL", "RR", "SLA",
+		"SRA", "SWAP", "SRL",
+		"BIT", "RES", "SET",
 	}[i]
 }
 
