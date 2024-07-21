@@ -161,6 +161,27 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 	c.registers.SetFlags(zflag, 0, hflag, cflag)
 }
 
+func (c *Cpu) execADC(instruction CpuInstriction, data uint16) {
+	rval := c.readFromRegister(instruction.Register1)
+	cval := uint16(c.registers.GetFlag(CpuFlagC))
+	final := uint8((rval + data + cval) & 0x00FF)
+
+	var zflag, hflag, cflag uint8
+	if rval&0xF+data&0xF+cval >= 0x10 {
+		hflag = 1
+	}
+	if rval&0xFF+data&0xFF+cval >= 0x100 {
+		cflag = 1
+	}
+	if final == 0 {
+		zflag = 1
+	}
+
+	c.writeToRegister(instruction.Register1, uint16(final))
+
+	c.registers.SetFlags(zflag, 0, hflag, cflag)
+}
+
 func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) {
 	rval := c.readFromRegister(instruction.Register1)
 	final := rval - data
@@ -176,28 +197,17 @@ func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) {
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
 }
 
-func (c *Cpu) execADC(instruction CpuInstriction, data uint16) {
-	var zflag uint8
-	rval := c.readFromRegister(instruction.Register1)
-	final := uint8((rval + data + uint16(c.registers.GetFlag(CpuFlagC))) & 0x00FF)
-	hflag := halfCarry(data, rval, uint16(final))
-	cflag := halfCarry(data, rval, uint16(final))
-
-	c.writeToRegister(instruction.Register1, uint16(final))
-
-	if final == 0 {
-		zflag = 1
-	}
-
-	c.registers.SetFlags(zflag, 0, hflag, cflag)
-}
-
 func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) {
-	var zflag uint8
-	rval := c.readFromRegister(instruction.Register1) + uint16(c.registers.GetFlag(CpuFlagC))
-	final := (rval - data) & 0xFF
-	hflag := halfCarry(data, rval, final)
-	cflag := halfCarry(data, rval, final)
+	var zflag, cflag, hflag uint8
+	rval := c.readFromRegister(instruction.Register1)
+	cval := uint16(c.registers.GetFlag(CpuFlagC))
+	final := (rval - data - cval) & 0xFF
+	if data+cval > rval {
+		cflag = 1
+	}
+	if int8(rval&0xF)-int8(data&0xF)-int8(cval) < 0 {
+		hflag = 1
+	}
 
 	c.writeToRegister(instruction.Register1, final)
 
