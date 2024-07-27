@@ -26,6 +26,8 @@ func (e *Emulator) Run(romPath string) error {
 	NewDebug(e.ctx)
 	NewTimer(e.ctx)
 	NewIO(e.ctx)
+	NewPpu(e.ctx)
+	NewLcd(e.ctx)
 
 	e.ctx.debug.enbled = true
 

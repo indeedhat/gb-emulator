@@ -43,6 +43,8 @@ func (i *IO) Write(addr uint16, value uint8) {
 		i.ctx.timer.Write(addr, value)
 	case addr == 0xFF0F:
 		i.ctx.cpu.interruptFlags = value
+	case addr == 0xFF46:
+		i.ctx.dma.Start(value)
 	default:
 		log.Printf("unsupported mem.write (IO) 0x%X", addr)
 	}
