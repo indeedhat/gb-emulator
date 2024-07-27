@@ -8,22 +8,16 @@ func (i InstructionType) String() string {
 	return []string{
 		"None", "NOP", "LD",
 		"INC", "DEC", "RLCA",
-		"STOP",
-		"RLA", "JR", "RRA",
-		"DAA", "CPL", "SCF",
-		"CCF", "HALT", "ADD",
-		"SUB", "ADC", "SBC",
-		"AND", "XOR", "OR",
-		"CP", "POP", "JP",
-		"PUSH", "RET", "CB",
+		"STOP", "RLA", "JR",
+		"RRA", "DAA", "CPL",
+		"SCF", "CCF", "HALT",
+		"ADD", "SUB", "ADC",
+		"SBC", "AND", "XOR",
+		"OR", "CP", "POP",
+		"JP", "PUSH", "RET", "CB",
 		"CALL", "RETI", "LDH",
 		"JPHL", "DI", "EI",
-		"RST",
-		// CB
-		"RLC", "RRC", "RRCA",
-		"RL", "RR", "SLA",
-		"SRA", "SWAP", "SRL",
-		"BIT", "RES", "SET",
+		"RST", "RRCA",
 	}[i]
 }
 
@@ -63,27 +57,13 @@ const (
 	InstructionTypeDI
 	InstructionTypeEI
 	InstructionTypeRST
-
-	// CB instructions...
-	InstructionTypeRLC
-	InstructionTypeRRC
 	InstructionTypeRRCA
-	InstructionTypeRL
-	InstructionTypeRR
-	InstructionTypeSLA
-	InstructionTypeSRA
-	InstructionTypeSWAP
-	InstructionTypeSRL
-	InstructionTypeBIT
-	InstructionTypeRES
-	InstructionTypeSET
 )
 
 type AddressMode byte
 
 const (
-	AddressModeImplied AddressMode = iota
-	AddressModeR
+	AddressModeR AddressMode = iota + 1
 	AddressModeR_R
 	AddressModeR_N16
 	AddressModeR_N8

@@ -6,14 +6,21 @@ type Context struct {
 	cart   *Cartridge
 	cpu    *Cpu
 	debug  *Debug
+	dma    *Dma
+	lcd    *Lcd
 	membus *MemoryBus
+	ppu    *Ppu
 	timer  *Timer
 	io     *IO
 }
 
 func (c *Context) EmuCycle(i int) {
-	for range i * 4 {
-		c.ticks++
-		c.timer.Tick()
+	for range i {
+		for range 4 {
+			c.ticks++
+			c.timer.Tick()
+		}
+
+		c.dma.Tick()
 	}
 }

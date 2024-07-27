@@ -43,8 +43,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 	case address < 0x8000:
 		return b.ctx.cart.Read(address)
 	case address < 0xA000:
-		// tile data
-		log.Printf("unsupported mem.read (Tile) 0x%X", address)
+		return b.ctx.ppu.vram.Read(address)
 	case address < 0xC000:
 		// cart ram
 		return b.ctx.cart.Read(address)
@@ -55,8 +54,10 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		// Echo ram is unusable
 		return 0
 	case address < 0xFEA0:
-		// OAM
-		log.Printf("unsupported mem.read (OAM) 0x%X", address)
+		if b.ctx.dma.Active {
+			return 0xFF
+		}
+		return b.ctx.ppu.oam.Read(address)
 	case address < 0xFF00:
 		// reserved and unusable
 		return 0
@@ -84,8 +85,7 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 	case address < 0x8000:
 		b.ctx.cart.Write(address, value)
 	case address < 0xA000:
-		// tile data
-		log.Printf("unsupported mem.write 0x%X", address)
+		b.ctx.ppu.vram.Write(address, value)
 	case address < 0xC000:
 		// cart ram
 		b.ctx.cart.Write(address, value)
@@ -95,8 +95,10 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 	case address < 0xFE00:
 		// Echo ram is unusable
 	case address < 0xFEA0:
-		// OAM
-		log.Printf("unsupported mem.write (OAM) 0x%X", address)
+		if b.ctx.dma.Active {
+			return
+		}
+		b.ctx.ppu.oam.Write(address, value)
 	case address < 0xFF00:
 		// reserved and unusable
 	case address < 0xFF80:
