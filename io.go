@@ -27,6 +27,8 @@ func (i *IO) Read(addr uint16) uint8 {
 		return i.ctx.timer.Read(addr)
 	case addr == 0xFF0F:
 		return i.ctx.cpu.interruptFlags
+	case addr >= 0xFF40 && addr <= 0xFF4B:
+		return i.ctx.lcd.Read(addr)
 	default:
 		log.Printf("unsupported mem.read (IO) 0x%X", addr)
 		return 0
@@ -43,8 +45,8 @@ func (i *IO) Write(addr uint16, value uint8) {
 		i.ctx.timer.Write(addr, value)
 	case addr == 0xFF0F:
 		i.ctx.cpu.interruptFlags = value
-	case addr == 0xFF46:
-		i.ctx.dma.Start(value)
+	case addr >= 0xFF40 && addr <= 0xFF4B:
+		i.ctx.lcd.Write(addr, value)
 	default:
 		log.Printf("unsupported mem.write (IO) 0x%X", addr)
 	}
