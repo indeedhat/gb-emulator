@@ -19,6 +19,7 @@ func (c *Context) EmuCycle(i int) {
 		for range 4 {
 			c.ticks++
 			c.timer.Tick()
+			c.ppu.Tick()
 		}
 
 		c.dma.Tick()

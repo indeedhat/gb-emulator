@@ -1,17 +1,88 @@
 package main
 
+const (
+	PpuLinesPerFrame = 154
+	PpuTicksPerLine  = 456
+	PpuYRes          = 144
+	PpuXRes          = 160
+)
+
 type Ppu struct {
 	oam  OamRam
 	vram *RamBank
+
+	frameIdx    uint32
+	tickIdx     uint32
+	videoBuffre []byte
+
+	ctx *Context
 }
 
 func NewPpu(ctx *Context) {
 	ctx.ppu = &Ppu{
-		make(OamRam, 40),
-		&RamBank{
+		oam: make(OamRam, 40),
+		vram: &RamBank{
 			offset: 0x8000,
 			data:   make([]byte, 0x2000),
 		},
+		videoBuffre: make([]byte, PpuYRes*PpuXRes*4),
+		ctx:         ctx,
+	}
+}
+
+func (p *Ppu) Tick() {
+	p.tickIdx++
+
+	switch p.ctx.lcd.GetMode() {
+	case LcdModeHblank:
+		p.doHblank()
+	case LcdModeVblank:
+		p.doVblank()
+	case LcdModeOam:
+		p.doOam()
+	case LcdModeDrawLine:
+		p.doDrawLine()
+	}
+}
+
+func (p *Ppu) doHblank() {
+	if p.tickIdx >= PpuTicksPerLine {
+		p.ctx.lcd.IncrementLine()
+		if p.ctx.lcd.ly >= PpuYRes {
+			p.ctx.lcd.SetMode(LcdModeVblank)
+
+			p.ctx.cpu.requestInterrupt(InterruptVBlank)
+
+			p.frameIdx++
+		} else {
+			p.ctx.lcd.SetMode(LcdModeOam)
+		}
+
+		p.tickIdx = 0
+	}
+}
+
+func (p *Ppu) doVblank() {
+	if p.tickIdx >= PpuTicksPerLine {
+		p.ctx.lcd.IncrementLine()
+		if p.ctx.lcd.ly >= PpuLinesPerFrame {
+			p.ctx.lcd.ly = 0
+			p.ctx.lcd.SetMode(LcdModeOam)
+		}
+
+		p.tickIdx = 0
+	}
+}
+
+func (p *Ppu) doOam() {
+	if p.tickIdx >= 80 {
+		p.ctx.lcd.SetMode(LcdModeDrawLine)
+	}
+}
+
+func (p *Ppu) doDrawLine() {
+	if p.tickIdx >= 252 {
+		p.ctx.lcd.SetMode(LcdModeHblank)
 	}
 }
 
@@ -61,13 +132,19 @@ func (e *OamEntry) Write(address uint8, value uint8) {
 type OamRam []*OamEntry
 
 func (o *OamRam) Read(address uint16) uint8 {
-	address -= 0xFE00
+	if address >= 0xFE00 {
+		address -= 0xFE00
+	}
+
 	i := address % 4
 	return (*o)[(address-i)/4].Read(uint8(i))
 }
 
 func (o *OamRam) Write(address uint16, value uint8) {
-	address -= 0xFE00
+	if address >= 0xFE00 {
+		address -= 0xFE00
+	}
+
 	i := address % 4
 	(*o)[(address-i)/4].Write(uint8(i), value)
 }
