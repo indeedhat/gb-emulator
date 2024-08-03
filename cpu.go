@@ -89,10 +89,13 @@ func (c *Cpu) Step() error {
 		c.ctx.EmuCycle(1)
 
 		data, destAddress := c.fetchData(instruction)
-		log.Print(c.String(pc))
 
-		c.ctx.debug.Update()
-		c.ctx.debug.Print()
+		if c.ctx.debug.enbled {
+			log.Print(c.String(pc))
+
+			c.ctx.debug.Update()
+			c.ctx.debug.Print()
+		}
 
 		c.executeInstruction(instruction, data, destAddress)
 	}

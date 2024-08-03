@@ -11,12 +11,12 @@ type Emulator struct {
 	ctx *Context
 }
 
-func (e *Emulator) Run(romPath string) error {
-	e.running = true
+func NewEmulator(romPath string, debug bool) (*Emulator, error) {
+	e := &Emulator{}
 
 	cartridge, err := LoadCartridge(romPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	e.ctx = &Context{cart: cartridge}
@@ -28,8 +28,15 @@ func (e *Emulator) Run(romPath string) error {
 	NewIO(e.ctx)
 	NewPpu(e.ctx)
 	NewLcd(e.ctx)
+	NewDma(e.ctx)
 
-	e.ctx.debug.enbled = true
+	e.ctx.debug.enbled = debug
+
+	return e, nil
+}
+
+func (e *Emulator) Run() error {
+	e.running = true
 
 	for {
 		if e.paused {
