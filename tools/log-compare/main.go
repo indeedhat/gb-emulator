@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var lineRE = regexp.MustCompile(`SP: [\dA-F]{4}$`)
+var lineRE = regexp.MustCompile(`SP: [\dA-F]{4}`)
 var whitespaceRE = regexp.MustCompile(`\s+`)
 var continueRE = regexp.MustCompile(`^\([\dA-F]{2}$`)
 
@@ -32,7 +32,9 @@ func main() {
 	cs := bufio.NewScanner(cfh)
 
 	var prevLine string
+	var i int
 	for {
+		i++
 		gl := nextLine(gs)
 		cl := nextLine(cs)
 
@@ -42,7 +44,7 @@ func main() {
 		}
 
 		if gl == "" || cl == "" {
-			println("Files are identical until end of one")
+			fmt.Printf("Files are identical until end of one: line(%d)\ngo(%s)\nc(%s)\n", i, gl, cl)
 			return
 		}
 

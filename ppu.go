@@ -11,31 +11,32 @@ const (
 )
 
 type Ppu struct {
-	oam  OamRam
+	oam *OamRam
+	// oam  OamRam
 	vram *RamBank
 
 	prevFrameTime time.Time
-	frameIdx      uint64
 	ticks         uint64
-	videoBuffre   []byte
+	videoBuffer   []byte
 
 	ctx *Context
 }
 
 func NewPpu(ctx *Context) {
 	ctx.ppu = &Ppu{
-		oam: make(OamRam, 40),
+		// oam: make(OamRam, 40),
+		oam: &OamRam{make([]byte, 160)},
 		vram: &RamBank{
 			offset: 0x8000,
 			data:   make([]byte, 0x2000),
 		},
-		videoBuffre: make([]byte, PpuYRes*PpuXRes*4),
+		videoBuffer: make([]byte, PpuYRes*PpuXRes*4),
 		ctx:         ctx,
 	}
 
-	for i := range ctx.ppu.oam {
-		ctx.ppu.oam[i] = &OamEntry{}
-	}
+	// for i := range ctx.ppu.oam {
+	// 	ctx.ppu.oam[i] = &OamEntry{}
+	// }
 }
 
 func (p *Ppu) Tick() {
@@ -63,12 +64,15 @@ func (p *Ppu) doHblank() {
 
 	if p.ctx.lcd.ly < PpuYRes {
 		p.ctx.lcd.SetMode(LcdModeOam)
+		return
 	}
 
 	p.ctx.lcd.SetMode(LcdModeVblank)
 
 	p.ctx.cpu.requestInterrupt(InterruptVBlank)
-	p.frameIdx++
+	if p.ctx.lcd.status&LcdStatusVblank == LcdStatusVblank {
+		p.ctx.cpu.requestInterrupt(InterruptLcdStat)
+	}
 
 	p.awaitNextFrame()
 
@@ -90,8 +94,8 @@ func (p *Ppu) doVblank() {
 
 	p.ctx.lcd.IncrementLine()
 	if p.ctx.lcd.ly >= PpuLinesPerFrame {
-		p.ctx.lcd.ly = 0
 		p.ctx.lcd.SetMode(LcdModeOam)
+		p.ctx.lcd.ly = 0
 	}
 
 	p.ticks = 0
@@ -106,65 +110,86 @@ func (p *Ppu) doOam() {
 }
 
 func (p *Ppu) doDrawLine() {
-	if p.ticks >= 252 {
+	if p.ticks < 252 {
 		return
 	}
 
 	p.ctx.lcd.SetMode(LcdModeHblank)
 }
 
-type OamEntry struct {
-	x       uint8
-	y       uint8
-	tileIdx uint8
-	// 7   Priority:    0 = No, 1 = BG and Window colors 1–3 are drawn over this OBJ
-	// 6   Y flip:      0 = Normal, 1 = Entire OBJ is vertically mirrored
-	// 5   X flip:      0 = Normal, 1 = Entire OBJ is horizontally mirrored
-	// 4   DMG palette: 0 = OBP0, 1 = OBP1
-	// 3   Bank:        0 = Fetch tile from VRAM bank 0, 1 = Fetch tile from VRAM bank 1
-	// 0-2 CGB palette: Which of OBP0–7 to use
-	flags uint8
-}
+// type OamEntry struct {
+// 	y       uint8
+// 	x       uint8
+// 	tileIdx uint8
+// 	// 7   Priority:    0 = No, 1 = BG and Window colors 1–3 are drawn over this OBJ
+// 	// 6   Y flip:      0 = Normal, 1 = Entire OBJ is vertically mirrored
+// 	// 5   X flip:      0 = Normal, 1 = Entire OBJ is horizontally mirrored
+// 	// 4   DMG palette: 0 = OBP0, 1 = OBP1
+// 	// 3   Bank:        0 = Fetch tile from VRAM bank 0, 1 = Fetch tile from VRAM bank 1
+// 	// 0-2 CGB palette: Which of OBP0–7 to use
+// 	flags uint8
+// }
+//
+// func (e *OamEntry) Read(address uint8) uint8 {
+// 	switch address {
+// 	case 0:
+// 		return e.y
+// 	case 1:
+// 		return e.x
+// 	case 2:
+// 		return e.tileIdx
+// 	case 3:
+// 		return e.flags
+// 	default:
+// 		panic("invalid address for oam entry")
+// 	}
+// }
+//
+// func (e *OamEntry) Write(address uint8, value uint8) {
+// 	switch address {
+// 	case 0:
+// 		e.y = value
+// 	case 1:
+// 		e.x = value
+// 	case 2:
+// 		e.tileIdx = value
+// 	case 3:
+// 		e.flags = value
+// 	default:
+// 		panic("invalid address for oam entry")
+// 	}
+// }
+//
+// type OamRam []*OamEntry
+//
+// func (o *OamRam) Read(address uint16) uint8 {
+// 	if address >= 0xFE00 {
+// 		address -= 0xFE00
+// 	}
+//
+// 	i := address % 4
+// 	return (*o)[(address-i)/4].Read(uint8(i))
+// }
+//
+// func (o *OamRam) Write(address uint16, value uint8) {
+// 	if address >= 0xFE00 {
+// 		address -= 0xFE00
+// 	}
+//
+// 	i := address % 4
+// 	(*o)[(address-i)/4].Write(uint8(i), value)
+// }
 
-func (e *OamEntry) Read(address uint8) uint8 {
-	switch address {
-	case 0:
-		return e.x
-	case 1:
-		return e.y
-	case 2:
-		return e.tileIdx
-	case 3:
-		return e.flags
-	default:
-		panic("invalid address for oam entry")
-	}
+type OamRam struct {
+	data []byte
 }
-
-func (e *OamEntry) Write(address uint8, value uint8) {
-	switch address {
-	case 0:
-		e.x = value
-	case 1:
-		e.y = value
-	case 2:
-		e.tileIdx = value
-	case 3:
-		e.flags = value
-	default:
-		panic("invalid address for oam entry")
-	}
-}
-
-type OamRam []*OamEntry
 
 func (o *OamRam) Read(address uint16) uint8 {
 	if address >= 0xFE00 {
 		address -= 0xFE00
 	}
 
-	i := address % 4
-	return (*o)[(address-i)/4].Read(uint8(i))
+	return o.data[address]
 }
 
 func (o *OamRam) Write(address uint16, value uint8) {
@@ -172,6 +197,5 @@ func (o *OamRam) Write(address uint16, value uint8) {
 		address -= 0xFE00
 	}
 
-	i := address % 4
-	(*o)[(address-i)/4].Write(uint8(i), value)
+	o.data[address] = value
 }

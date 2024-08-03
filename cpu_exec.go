@@ -65,7 +65,7 @@ func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDe
 
 func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
 	if instruction.Register1 == RegisterTypeA {
-		c.writeToRegister(RegisterTypeA, uint16(c.ctx.membus.Read(0xFF00|data)&0xFF))
+		c.writeToRegister(RegisterTypeA, uint16(c.ctx.membus.Read(0xFF00|data)))
 	} else {
 		c.ctx.membus.Write(destAddress.Address, c.registers.A)
 	}
@@ -382,7 +382,7 @@ func (c *Cpu) execRST(instruction CpuInstriction) {
 
 	c.ctx.EmuCycle(2)
 	c.stackPush(c.registers.PC)
-	c.registers.PC = uint16(instruction.Param) & 0x0F
+	c.registers.PC = uint16(instruction.Param) & 0xFF
 	c.ctx.EmuCycle(1)
 }
 
