@@ -1,19 +1,23 @@
 package main
 
+import "time"
+
 const (
 	PpuLinesPerFrame = 154
 	PpuTicksPerLine  = 456
 	PpuYRes          = 144
 	PpuXRes          = 160
+	TargetFrameTime  = time.Second / 60
 )
 
 type Ppu struct {
 	oam  OamRam
 	vram *RamBank
 
-	frameIdx    uint32
-	tickIdx     uint32
-	videoBuffre []byte
+	prevFrameTime time.Time
+	frameIdx      uint64
+	ticks         uint64
+	videoBuffre   []byte
 
 	ctx *Context
 }
@@ -31,7 +35,7 @@ func NewPpu(ctx *Context) {
 }
 
 func (p *Ppu) Tick() {
-	p.tickIdx++
+	p.ticks++
 
 	switch p.ctx.lcd.GetMode() {
 	case LcdModeHblank:
@@ -46,44 +50,63 @@ func (p *Ppu) Tick() {
 }
 
 func (p *Ppu) doHblank() {
-	if p.tickIdx >= PpuTicksPerLine {
-		p.ctx.lcd.IncrementLine()
-		if p.ctx.lcd.ly >= PpuYRes {
-			p.ctx.lcd.SetMode(LcdModeVblank)
-
-			p.ctx.cpu.requestInterrupt(InterruptVBlank)
-
-			p.frameIdx++
-		} else {
-			p.ctx.lcd.SetMode(LcdModeOam)
-		}
-
-		p.tickIdx = 0
+	if p.ticks < PpuTicksPerLine {
+		return
 	}
+
+	p.ctx.lcd.IncrementLine()
+	p.ticks = 0
+
+	if p.ctx.lcd.ly < PpuYRes {
+		p.ctx.lcd.SetMode(LcdModeOam)
+	}
+
+	p.ctx.lcd.SetMode(LcdModeVblank)
+
+	p.ctx.cpu.requestInterrupt(InterruptVBlank)
+	p.frameIdx++
+
+	p.awaitNextFrame()
+
+}
+
+func (p *Ppu) awaitNextFrame() {
+	now := time.Now()
+	if curFrameTime := now.Sub(p.prevFrameTime); curFrameTime < TargetFrameTime {
+		time.Sleep(TargetFrameTime - curFrameTime)
+	}
+
+	p.prevFrameTime = now
 }
 
 func (p *Ppu) doVblank() {
-	if p.tickIdx >= PpuTicksPerLine {
-		p.ctx.lcd.IncrementLine()
-		if p.ctx.lcd.ly >= PpuLinesPerFrame {
-			p.ctx.lcd.ly = 0
-			p.ctx.lcd.SetMode(LcdModeOam)
-		}
-
-		p.tickIdx = 0
+	if p.ticks < PpuTicksPerLine {
+		return
 	}
+
+	p.ctx.lcd.IncrementLine()
+	if p.ctx.lcd.ly >= PpuLinesPerFrame {
+		p.ctx.lcd.ly = 0
+		p.ctx.lcd.SetMode(LcdModeOam)
+	}
+
+	p.ticks = 0
 }
 
 func (p *Ppu) doOam() {
-	if p.tickIdx >= 80 {
-		p.ctx.lcd.SetMode(LcdModeDrawLine)
+	if p.ticks < 80 {
+		return
 	}
+
+	p.ctx.lcd.SetMode(LcdModeDrawLine)
 }
 
 func (p *Ppu) doDrawLine() {
-	if p.tickIdx >= 252 {
-		p.ctx.lcd.SetMode(LcdModeHblank)
+	if p.ticks >= 252 {
+		return
 	}
+
+	p.ctx.lcd.SetMode(LcdModeHblank)
 }
 
 type OamEntry struct {

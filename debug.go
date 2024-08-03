@@ -34,5 +34,4 @@ func (d *Debug) Print() {
 	}
 
 	log.Printf("[DEBUG]: %s", d.buf.String())
-	// d.buf.Reset()
 }

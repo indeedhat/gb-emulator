@@ -106,7 +106,6 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		b.ctx.io.Write(address, value)
 	case address < 0xFFFF:
 		// high ram/zero page
-		log.Printf("HRAMW %04x %02x", address, value)
 		b.hram.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
