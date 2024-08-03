@@ -57,7 +57,12 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		if b.ctx.dma.Active {
 			return 0xFF
 		}
-		return b.ctx.ppu.oam.Read(address)
+
+		value := b.ctx.ppu.oam.Read(address)
+		if address == 0xFE40 {
+			log.Fatalf("r %d,%d", address, value)
+		}
+		return value
 	case address < 0xFF00:
 		// reserved and unusable
 		return 0
@@ -97,6 +102,9 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 	case address < 0xFEA0:
 		if b.ctx.dma.Active {
 			return
+		}
+		if address == 0xFE40 {
+			log.Printf("w %d,%d", address, value)
 		}
 		b.ctx.ppu.oam.Write(address, value)
 	case address < 0xFF00:

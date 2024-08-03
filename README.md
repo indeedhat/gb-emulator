@@ -1,2 +1,5 @@
 # Gameboy emulator written in go
 lets be honest, ill never actually finish this project
+
+# Issues
+seems to be a problem with the DMA process, ending with invalid data in OAM

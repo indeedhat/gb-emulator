@@ -61,8 +61,17 @@ func (l *LcdRenderer) Draw(screen *ebiten.Image) {
 	screen.WritePixels(l.buffer)
 }
 
-func (l *LcdRenderer) drawGame(screen *ebiten.Image) {
+func (l *LcdRenderer) drawGame(_ *ebiten.Image) {
+	if !l.displayTileData {
+		l.buffer = l.ctx.ppu.videoBuffer
+		return
+	}
 
+	lineOffset := 386 * 4
+
+	for i := 0; i < 144; i++ {
+		copy(l.buffer[i*lineOffset:], l.ctx.ppu.videoBuffer[i*640:(i+1)*640])
+	}
 }
 
 func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {

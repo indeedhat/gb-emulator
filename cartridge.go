@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Cartridge struct {
@@ -29,6 +31,8 @@ func LoadCartridge(path string) (*Cartridge, error) {
 	if err = c.Header.Parse(c.Data); err != nil {
 		return nil, err
 	}
+
+	spew.Dump(c.Header)
 
 	return &c, nil
 }

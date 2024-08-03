@@ -40,10 +40,10 @@ type Lcd struct {
 	// Bit 2: OBJ size:                   0 = 8×8; 1 = 8×16
 	// Bit 1: OBJ enable:                 0 = Off; 1 = On
 	// Bit 0: BG & Window enable / priority [Different meaning in CGB Mode]: 0 = Off; 1 = On
-	control uint8
-	ly      uint8
-	lyc     uint8
-	dma     uint8
+	control   uint8
+	ly        uint8
+	lyCompare uint8
+	dma       uint8
 	// bit 6: LYC int select (Read/Write):    If set, selects the LYC == LY condition for the STAT interrupt.
 	// bit 5: Mode 2 int select (Read/Write): If set, selects the Mode 2 condition for the STAT interrupt.
 	// bit 4: Mode 1 int select (Read/Write): If set, selects the Mode 1 condition for the STAT interrupt.
@@ -75,7 +75,6 @@ func NewLcd(ctx *Context) {
 		ctx:              ctx,
 		control:          0x91,
 		status:           uint8(LcdModeOam),
-		dma:              0xFF,
 		backgroundPallet: 0xFC,
 		objectPallet0:    0xFF,
 		objectPallet1:    0xFF,
@@ -106,13 +105,14 @@ func (l *Lcd) SetMode(mode LcdMode) {
 func (l *Lcd) IncrementLine() {
 	l.ly++
 
-	if l.ly == l.lyc {
-		l.status |= 0b10
-		if l.status&LcdStatusLyc == LcdStatusLyc {
-			l.ctx.cpu.requestInterrupt(InterruptLcdStat)
-		}
-	} else {
+	if l.ly != l.lyCompare {
 		l.status &= ^uint8(0b10)
+		return
+	}
+
+	l.status |= 0b10
+	if l.status&LcdStatusLyc == LcdStatusLyc {
+		l.ctx.cpu.requestInterrupt(InterruptLcdStat)
 	}
 }
 
@@ -129,7 +129,7 @@ func (l *Lcd) Read(addr uint16) uint8 {
 	case 0xFF44:
 		return l.ly
 	case 0xFF45:
-		return l.lyc
+		return l.lyCompare
 	case 0xFF46:
 		return l.dma
 	case 0xFF47:
@@ -160,7 +160,7 @@ func (l *Lcd) Write(addr uint16, value uint8) {
 	case 0xFF44:
 		l.ly = value
 	case 0xFF45:
-		l.lyc = value
+		l.lyCompare = value
 	case 0xFF46:
 		l.dma = value
 		l.ctx.dma.Start(value)

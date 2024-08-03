@@ -2,7 +2,10 @@ module github.com/indeedhat/gb-emulator
 
 go 1.22.5
 
-require github.com/hajimehoshi/ebiten/v2 v2.7.8
+require (
+	github.com/davecgh/go-spew v1.1.1
+	github.com/hajimehoshi/ebiten/v2 v2.7.8
+)
 
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240518074828-e86332849895 // indirect
