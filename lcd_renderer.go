@@ -49,14 +49,6 @@ func (l *LcdRenderer) init() {
 
 	l.blankScreenBuffer = make([]byte, l.screenX*l.screenY*4)
 	l.buffer = make([]byte, l.screenX*l.screenY*4)
-
-	c := ColorPallet[0]
-	for i := 0; i < len(l.blankScreenBuffer); i += 4 {
-		l.blankScreenBuffer[i] = c.R
-		l.blankScreenBuffer[i+1] = c.G
-		l.blankScreenBuffer[i+2] = c.B
-		l.blankScreenBuffer[i+3] = 0xFF
-	}
 }
 
 // Draw implements ebiten.Game.
@@ -91,7 +83,6 @@ func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {
 			for x := 7; x >= 0; x-- {
 				i := (xOffset+x)*4 + (yOffset+y)*386*4
 				color := getColor(hb, lb, uint8(x))
-				// color := ColorPallet[1]
 
 				l.buffer[i] = color.R
 				l.buffer[i+1] = color.G

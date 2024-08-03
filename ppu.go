@@ -32,6 +32,10 @@ func NewPpu(ctx *Context) {
 		videoBuffre: make([]byte, PpuYRes*PpuXRes*4),
 		ctx:         ctx,
 	}
+
+	for i := range ctx.ppu.oam {
+		ctx.ppu.oam[i] = &OamEntry{}
+	}
 }
 
 func (p *Ppu) Tick() {

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"log"
 	"os"
 )
 
@@ -37,7 +38,7 @@ func (c *Cartridge) Read(address uint16) byte {
 }
 
 func (c *Cartridge) Write(address uint16, value byte) {
-	panic("cart.write not implemented")
+	log.Print("cart.write not implemented")
 }
 
 type CartHeader struct {
