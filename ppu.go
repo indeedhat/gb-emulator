@@ -1,6 +1,8 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	PpuLinesPerFrame = 154
@@ -17,26 +19,32 @@ type Ppu struct {
 
 	prevFrameTime time.Time
 	ticks         uint64
-	videoBuffer   []byte
+	nextFrame     []byte
+	currentFrame  []byte
+	blankFrame    []byte
 
 	ctx *Context
 }
 
 func NewPpu(ctx *Context) {
 	ctx.ppu = &Ppu{
-		// oam: make(OamRam, 40),
 		oam: &OamRam{make([]byte, 160)},
 		vram: &RamBank{
 			offset: 0x8000,
 			data:   make([]byte, 0x2000),
 		},
-		videoBuffer: make([]byte, PpuYRes*PpuXRes*4),
-		ctx:         ctx,
+		nextFrame:    make([]byte, PpuYRes*PpuXRes*4),
+		currentFrame: make([]byte, PpuYRes*PpuXRes*4),
+		blankFrame:   make([]byte, PpuYRes*PpuXRes*4),
+		ctx:          ctx,
 	}
 
-	// for i := range ctx.ppu.oam {
-	// 	ctx.ppu.oam[i] = &OamEntry{}
-	// }
+	for i := range PpuXRes * PpuYRes {
+		ctx.ppu.blankFrame[i*4] = 0xFF
+		ctx.ppu.blankFrame[i*4+1] = 0x00
+		ctx.ppu.blankFrame[i*4+2] = 0xFF
+		ctx.ppu.blankFrame[i*4+3] = 0xFF
+	}
 }
 
 func (p *Ppu) Tick() {
@@ -49,8 +57,8 @@ func (p *Ppu) Tick() {
 		p.doVblank()
 	case LcdModeOam:
 		p.doOam()
-	case LcdModeDrawLine:
-		p.doDrawLine()
+	case LcdModeDraw:
+		p.doDraw()
 	}
 }
 
@@ -70,12 +78,13 @@ func (p *Ppu) doHblank() {
 	p.ctx.lcd.SetMode(LcdModeVblank)
 
 	p.ctx.cpu.requestInterrupt(InterruptVBlank)
-	if p.ctx.lcd.status&LcdStatusVblank == LcdStatusVblank {
+	if p.ctx.lcd.GetStatus(LcdStatusVblank) {
 		p.ctx.cpu.requestInterrupt(InterruptLcdStat)
 	}
 
+	copy(p.currentFrame, p.nextFrame)
+	copy(p.nextFrame, p.blankFrame)
 	p.awaitNextFrame()
-
 }
 
 func (p *Ppu) awaitNextFrame() {
@@ -84,7 +93,7 @@ func (p *Ppu) awaitNextFrame() {
 		time.Sleep(TargetFrameTime - curFrameTime)
 	}
 
-	p.prevFrameTime = now
+	p.prevFrameTime = time.Now()
 }
 
 func (p *Ppu) doVblank() {
@@ -106,79 +115,25 @@ func (p *Ppu) doOam() {
 		return
 	}
 
-	p.ctx.lcd.SetMode(LcdModeDrawLine)
+	p.ctx.lcd.SetMode(LcdModeDraw)
+	p.ctx.pix.Reset()
 }
 
-func (p *Ppu) doDrawLine() {
-	if p.ticks < 252 {
+func (p *Ppu) doDraw() {
+	p.ctx.pix.Process()
+
+	if p.ctx.pix.pushed < PpuXRes {
 		return
 	}
 
-	p.ctx.lcd.SetMode(LcdModeHblank)
-}
+	p.ctx.pix.bgFifo.Reset()
 
-// type OamEntry struct {
-// 	y       uint8
-// 	x       uint8
-// 	tileIdx uint8
-// 	// 7   Priority:    0 = No, 1 = BG and Window colors 1–3 are drawn over this OBJ
-// 	// 6   Y flip:      0 = Normal, 1 = Entire OBJ is vertically mirrored
-// 	// 5   X flip:      0 = Normal, 1 = Entire OBJ is horizontally mirrored
-// 	// 4   DMG palette: 0 = OBP0, 1 = OBP1
-// 	// 3   Bank:        0 = Fetch tile from VRAM bank 0, 1 = Fetch tile from VRAM bank 1
-// 	// 0-2 CGB palette: Which of OBP0–7 to use
-// 	flags uint8
-// }
-//
-// func (e *OamEntry) Read(address uint8) uint8 {
-// 	switch address {
-// 	case 0:
-// 		return e.y
-// 	case 1:
-// 		return e.x
-// 	case 2:
-// 		return e.tileIdx
-// 	case 3:
-// 		return e.flags
-// 	default:
-// 		panic("invalid address for oam entry")
-// 	}
-// }
-//
-// func (e *OamEntry) Write(address uint8, value uint8) {
-// 	switch address {
-// 	case 0:
-// 		e.y = value
-// 	case 1:
-// 		e.x = value
-// 	case 2:
-// 		e.tileIdx = value
-// 	case 3:
-// 		e.flags = value
-// 	default:
-// 		panic("invalid address for oam entry")
-// 	}
-// }
-//
-// type OamRam []*OamEntry
-//
-// func (o *OamRam) Read(address uint16) uint8 {
-// 	if address >= 0xFE00 {
-// 		address -= 0xFE00
-// 	}
-//
-// 	i := address % 4
-// 	return (*o)[(address-i)/4].Read(uint8(i))
-// }
-//
-// func (o *OamRam) Write(address uint16, value uint8) {
-// 	if address >= 0xFE00 {
-// 		address -= 0xFE00
-// 	}
-//
-// 	i := address % 4
-// 	(*o)[(address-i)/4].Write(uint8(i), value)
-// }
+	p.ctx.lcd.SetMode(LcdModeHblank)
+
+	if p.ctx.lcd.GetStatus(LcdStatusHblank) {
+		p.ctx.cpu.requestInterrupt(InterruptLcdStat)
+	}
+}
 
 type OamRam struct {
 	data []byte
