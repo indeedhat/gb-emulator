@@ -1,9 +1,13 @@
 package main
 
+import (
+	"fmt"
+)
+
 type Lcdc uint8
 
 const (
-	LcdcBgwEnable = 1 < iota
+	LcdcBgwEnable Lcdc = 1 << iota
 	LcdcObjecteEnable
 	LcdcObjecteSize
 	LcdcBgTileArea
@@ -16,10 +20,10 @@ const (
 type LcdStatus uint8
 
 const (
-	LcdStatusHblank = (1 << 3)
-	LcdStatusVblank = (1 << 4)
-	LcdStatusOam    = (1 << 5)
-	LcdStatusLyc    = (1 << 6)
+	LcdStatusHblank LcdStatus = (1 << 3)
+	LcdStatusVblank LcdStatus = (1 << 4)
+	LcdStatusOam    LcdStatus = (1 << 5)
+	LcdStatusLyc    LcdStatus = (1 << 6)
 )
 
 type LcdMode uint8
@@ -28,7 +32,7 @@ const (
 	LcdModeHblank LcdMode = iota
 	LcdModeVblank
 	LcdModeOam
-	LcdModeDrawLine
+	LcdModeDraw
 )
 
 type Lcd struct {
@@ -81,6 +85,21 @@ func NewLcd(ctx *Context) {
 	}
 }
 
+func (l *Lcd) String(pc uint16) string {
+	return fmt.Sprintf("%08X - %04X: control(%d) ly(%d) lyc(%d) status(%d) scrollX(%d) scrollY(%d) windowX(%d) windowY(%d)",
+		l.ctx.ticks,
+		pc,
+		l.control,
+		l.ly,
+		l.lyCompare,
+		l.status,
+		l.scrollX,
+		l.scrollY,
+		l.windowX,
+		l.windowY,
+	)
+}
+
 func (l *Lcd) GetControl(code Lcdc) bool {
 	return Lcdc(l.control)&code == code
 }
@@ -93,25 +112,53 @@ func (l *Lcd) SetControl(code Lcdc, set bool) {
 	}
 }
 
+func (l *Lcd) BgTileAddress(address uint16) uint16 {
+	if l.GetControl(LcdcBgTileArea) {
+		return address + 0x9C00
+	}
+
+	return address + 0x9800
+}
+
+func (l *Lcd) WinTileAddress(address uint16) uint16 {
+	if l.GetControl(LcdcWindowTileArea) {
+		return address + 0x9C00
+	}
+
+	return address + 0x9800
+}
+
+func (l *Lcd) BgWinTileAddress(address uint16) uint16 {
+	if l.GetControl(LcdcWindowTileArea) {
+		return address + 0x8800
+	}
+
+	return address + 0x8000
+}
+
+func (l *Lcd) GetStatus(code LcdStatus) bool {
+	return LcdStatus(l.status)&code == code
+}
+
 func (l *Lcd) GetMode() LcdMode {
 	return LcdMode(l.status & 0x3)
 }
 
 func (l *Lcd) SetMode(mode LcdMode) {
 	l.status &= ^uint8(0x3)
-	l.status |= uint8(mode)
+	l.status |= uint8(mode & 0x3)
 }
 
 func (l *Lcd) IncrementLine() {
 	l.ly++
 
 	if l.ly != l.lyCompare {
-		l.status &= ^uint8(0b10)
+		l.status &= ^uint8(0b100)
 		return
 	}
 
-	l.status |= 0b10
-	if l.status&LcdStatusLyc == LcdStatusLyc {
+	l.status |= 0b100
+	if l.GetStatus(LcdStatusLyc) {
 		l.ctx.cpu.requestInterrupt(InterruptLcdStat)
 	}
 }
