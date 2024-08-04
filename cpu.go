@@ -92,7 +92,8 @@ func (c *Cpu) Step() error {
 		data, destAddress := c.fetchData(instruction)
 
 		if c.ctx.debug.enbled {
-			log.Print(c.String(pc))
+			// log.Print(c.String(pc))
+			log.Print(c.ctx.lcd.String(pc))
 
 			c.ctx.debug.Update()
 			c.ctx.debug.Print()

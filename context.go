@@ -9,6 +9,7 @@ type Context struct {
 	dma    *Dma
 	lcd    *Lcd
 	membus *MemoryBus
+	pix    *PixelFetcher
 	ppu    *Ppu
 	timer  *Timer
 	io     *IO

@@ -31,8 +31,8 @@ type LcdRenderer struct {
 
 func NewLcdRenderer(ctx *Context) *LcdRenderer {
 	l := &LcdRenderer{
-		ctx:             ctx,
-		displayTileData: true,
+		ctx: ctx,
+		// displayTileData: true,
 	}
 	l.init()
 
@@ -40,11 +40,11 @@ func NewLcdRenderer(ctx *Context) *LcdRenderer {
 }
 
 func (l *LcdRenderer) init() {
-	l.screenX = 160
-	l.screenY = 144
+	l.screenX = PpuXRes
+	l.screenY = PpuYRes
 
 	if l.displayTileData {
-		l.screenX = 386
+		l.screenX += 226
 	}
 
 	l.blankScreenBuffer = make([]byte, l.screenX*l.screenY*4)
@@ -63,14 +63,14 @@ func (l *LcdRenderer) Draw(screen *ebiten.Image) {
 
 func (l *LcdRenderer) drawGame(_ *ebiten.Image) {
 	if !l.displayTileData {
-		l.buffer = l.ctx.ppu.videoBuffer
+		copy(l.buffer, l.ctx.ppu.currentFrame)
 		return
 	}
 
 	lineOffset := 386 * 4
 
 	for i := 0; i < 144; i++ {
-		copy(l.buffer[i*lineOffset:], l.ctx.ppu.videoBuffer[i*640:(i+1)*640])
+		copy(l.buffer[i*lineOffset:], l.ctx.ppu.currentFrame[i*640:(i+1)*640])
 	}
 }
 
