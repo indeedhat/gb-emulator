@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 )
 
@@ -13,15 +14,15 @@ const (
 )
 
 type Ppu struct {
-	oam *OamRam
-	// oam  OamRam
+	oam  *OamRam
 	vram *RamBank
 
 	prevFrameTime time.Time
 	ticks         uint64
-	nextFrame     []byte
-	currentFrame  []byte
-	blankFrame    []byte
+	nextFrame     []Pixel
+	blankFrame    []Pixel
+	currentFrame  []Pixel
+	cfMux         sync.Mutex
 
 	ctx *Context
 }
@@ -33,17 +34,14 @@ func NewPpu(ctx *Context) {
 			offset: 0x8000,
 			data:   make([]byte, 0x2000),
 		},
-		nextFrame:    make([]byte, PpuYRes*PpuXRes*4),
-		currentFrame: make([]byte, PpuYRes*PpuXRes*4),
-		blankFrame:   make([]byte, PpuYRes*PpuXRes*4),
+		nextFrame:    make([]Pixel, PpuYRes*PpuXRes),
+		currentFrame: make([]Pixel, PpuYRes*PpuXRes),
+		blankFrame:   make([]Pixel, PpuYRes*PpuXRes),
 		ctx:          ctx,
 	}
 
 	for i := range PpuXRes * PpuYRes {
-		ctx.ppu.blankFrame[i*4] = 0xFF
-		ctx.ppu.blankFrame[i*4+1] = 0x00
-		ctx.ppu.blankFrame[i*4+2] = 0xFF
-		ctx.ppu.blankFrame[i*4+3] = 0xFF
+		ctx.ppu.blankFrame[i] = Pixel{0xFF, 0x00, 0xFF}
 	}
 }
 
@@ -81,10 +79,6 @@ func (p *Ppu) doHblank() {
 	if p.ctx.lcd.GetStatus(LcdStatusVblank) {
 		p.ctx.cpu.requestInterrupt(InterruptLcdStat)
 	}
-
-	copy(p.currentFrame, p.nextFrame)
-	copy(p.nextFrame, p.blankFrame)
-	p.awaitNextFrame()
 }
 
 func (p *Ppu) awaitNextFrame() {
@@ -105,6 +99,17 @@ func (p *Ppu) doVblank() {
 	if p.ctx.lcd.ly >= PpuLinesPerFrame {
 		p.ctx.lcd.SetMode(LcdModeOam)
 		p.ctx.lcd.ly = 0
+
+		if !p.ctx.pix.done {
+			p.cfMux.Lock()
+			copy(p.currentFrame, p.nextFrame)
+			p.cfMux.Unlock()
+
+			copy(p.nextFrame, p.blankFrame)
+			p.ctx.pix.done = true
+		}
+
+		p.awaitNextFrame()
 	}
 
 	p.ticks = 0

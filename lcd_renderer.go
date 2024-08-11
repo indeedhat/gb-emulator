@@ -62,16 +62,25 @@ func (l *LcdRenderer) Draw(screen *ebiten.Image) {
 }
 
 func (l *LcdRenderer) drawGame(_ *ebiten.Image) {
+	l.ctx.ppu.cfMux.Lock()
+	defer l.ctx.ppu.cfMux.Unlock()
+
 	if !l.displayTileData {
-		copy(l.buffer, l.ctx.ppu.currentFrame)
+		for i, p := range l.ctx.ppu.currentFrame {
+			l.buffer[i*4] = p.R
+			l.buffer[i*4+1] = p.G
+			l.buffer[i*4+2] = p.B
+			l.buffer[i*4+3] = 0xFF
+		}
+		// copy(l.buffer, l.ctx.ppu.currentFrame)
 		return
 	}
 
-	lineOffset := 386 * 4
-
-	for i := 0; i < 144; i++ {
-		copy(l.buffer[i*lineOffset:], l.ctx.ppu.currentFrame[i*640:(i+1)*640])
-	}
+	// lineOffset := 386 * 4
+	//
+	// for i := 0; i < 144; i++ {
+	// 	copy(l.buffer[i*lineOffset:], l.ctx.ppu.currentFrame[i*640:(i+1)*640])
+	// }
 }
 
 func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {

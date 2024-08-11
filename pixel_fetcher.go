@@ -22,6 +22,9 @@ type PixelFetcher struct {
 	mapX    uint8
 	mapY    uint8
 
+	frame int
+	done  bool
+
 	dataTileId  uint8
 	dataLowBit  uint8
 	dataHighBit uint8
@@ -46,6 +49,7 @@ func (p *PixelFetcher) Reset() {
 	p.pushed = 0
 	p.fetched = 0
 	p.lineX = 0
+	p.done = false
 }
 
 func (p *PixelFetcher) Process() {
@@ -119,10 +123,7 @@ func (p *PixelFetcher) pushPixel() {
 	if p.lineX >= (p.ctx.lcd.scrollX % 8) {
 		i := uint16(p.pushed) + (uint16(p.ctx.lcd.ly) * PpuXRes)
 
-		p.ctx.ppu.nextFrame[i*4] = pix.R
-		p.ctx.ppu.nextFrame[i*4+1] = pix.G
-		p.ctx.ppu.nextFrame[i*4+2] = pix.B
-		p.ctx.ppu.nextFrame[i*4+3] = 0xFF
+		p.ctx.ppu.nextFrame[i] = pix
 
 		p.pushed++
 	}
