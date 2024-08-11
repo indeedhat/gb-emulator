@@ -6,10 +6,10 @@ import (
 
 // colors taken from https://github.com/mitxela/swotGB/blob/master/gbjs.htm
 var ColorPallet = []Pixel{
-	/* White */ Pixel{0xE0, 0xF8, 0xD0},
-	/* Light */ Pixel{0x88, 0xC0, 0x70},
-	/* Dark  */ Pixel{0x34, 0x68, 0x56},
-	/* Black */ Pixel{0x08, 0x18, 0x20},
+	/* White */ {0xE0, 0xF8, 0xD0},
+	/* Light */ {0x88, 0xC0, 0x70},
+	/* Dark  */ {0x34, 0x68, 0x56},
+	/* Black */ {0x08, 0x18, 0x20},
 }
 
 type Pixel struct {
@@ -31,8 +31,8 @@ type LcdRenderer struct {
 
 func NewLcdRenderer(ctx *Context) *LcdRenderer {
 	l := &LcdRenderer{
-		ctx: ctx,
-		// displayTileData: true,
+		ctx:             ctx,
+		displayTileData: true,
 	}
 	l.init()
 
@@ -65,21 +65,29 @@ func (l *LcdRenderer) drawGame(_ *ebiten.Image) {
 	l.ctx.ppu.cfMux.Lock()
 	defer l.ctx.ppu.cfMux.Unlock()
 
-	if !l.displayTileData {
+	if l.displayTileData {
+		lineOffset := 386 * 4
+
 		for i, p := range l.ctx.ppu.currentFrame {
-			l.buffer[i*4] = p.R
-			l.buffer[i*4+1] = p.G
-			l.buffer[i*4+2] = p.B
-			l.buffer[i*4+3] = 0xFF
+			y := i / PpuXRes
+			x := i % PpuXRes
+			window := y*lineOffset + x*4
+
+			l.buffer[window] = p.R
+			l.buffer[window+1] = p.G
+			l.buffer[window+2] = p.B
+			l.buffer[window+3] = 0xFF
 		}
 		return
 	}
 
-	// lineOffset := 386 * 4
-	//
-	// for i := 0; i < 144; i++ {
-	// 	copy(l.buffer[i*lineOffset:], l.ctx.ppu.currentFrame[i*640:(i+1)*640])
-	// }
+	for i, p := range l.ctx.ppu.currentFrame {
+		l.buffer[i*4] = p.R
+		l.buffer[i*4+1] = p.G
+		l.buffer[i*4+2] = p.B
+		l.buffer[i*4+3] = 0xFF
+	}
+	return
 }
 
 func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {
