@@ -72,7 +72,6 @@ func (l *LcdRenderer) drawGame(_ *ebiten.Image) {
 			l.buffer[i*4+2] = p.B
 			l.buffer[i*4+3] = 0xFF
 		}
-		// copy(l.buffer, l.ctx.ppu.currentFrame)
 		return
 	}
 
