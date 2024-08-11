@@ -130,10 +130,10 @@ func (l *Lcd) WinTileAddress(address uint16) uint16 {
 
 func (l *Lcd) BgWinTileAddress(address uint16) uint16 {
 	if l.GetControl(LcdcWindowTileArea) {
-		return address + 0x8800
+		return address + 0x8000
 	}
 
-	return address + 0x8000
+	return address + 0x8800
 }
 
 func (l *Lcd) GetStatus(code LcdStatus) bool {
