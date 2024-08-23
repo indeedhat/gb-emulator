@@ -29,8 +29,7 @@ type PixelFetcher struct {
 	dataLowBit  uint8
 	dataHighBit uint8
 
-	bgFifo  *PixelFifo
-	objFifo *PixelFifo
+	pixFifo *PixelFifo
 
 	ctx *Context
 }
@@ -39,8 +38,7 @@ func NewPixelFetcher(ctx *Context) {
 	ctx.pix = &PixelFetcher{
 		ctx: ctx,
 
-		bgFifo:  &PixelFifo{pixels: make([]Pixel, 16)},
-		objFifo: &PixelFifo{pixels: make([]Pixel, 16)},
+		pixFifo: &PixelFifo{pixels: make([]Pixel, 16)},
 	}
 }
 
@@ -93,7 +91,7 @@ func (p *PixelFetcher) fetch() {
 	case PixFetchModeSleep:
 		p.mode = PixFetchModePush
 	case PixFetchModePush:
-		if p.bgFifo.fill > 8 {
+		if p.pixFifo.fill > 8 {
 			return
 		}
 
@@ -104,18 +102,18 @@ func (p *PixelFetcher) fetch() {
 			c := getColor(p.dataLowBit, p.dataHighBit, uint8(i))
 
 			if xPos >= 0 {
-				p.bgFifo.Enqueue(c)
+				p.pixFifo.Enqueue(c)
 			}
 		}
 	}
 }
 
 func (p *PixelFetcher) pushPixel() {
-	if p.bgFifo.fill <= 8 {
+	if p.pixFifo.fill <= 8 {
 		return
 	}
 
-	pix, ok := p.bgFifo.Dequeue()
+	pix, ok := p.pixFifo.Dequeue()
 	if !ok {
 		panic("failed to get pixel")
 	}

@@ -131,31 +131,11 @@ func (p *Ppu) doDraw() {
 		return
 	}
 
-	p.ctx.pix.bgFifo.Reset()
+	p.ctx.pix.pixFifo.Reset()
 
 	p.ctx.lcd.SetMode(LcdModeHblank)
 
 	if p.ctx.lcd.GetStatus(LcdStatusHblank) {
 		p.ctx.cpu.requestInterrupt(InterruptLcdStat)
 	}
-}
-
-type OamRam struct {
-	data []byte
-}
-
-func (o *OamRam) Read(address uint16) uint8 {
-	if address >= 0xFE00 {
-		address -= 0xFE00
-	}
-
-	return o.data[address]
-}
-
-func (o *OamRam) Write(address uint16, value uint8) {
-	if address >= 0xFE00 {
-		address -= 0xFE00
-	}
-
-	o.data[address] = value
 }
