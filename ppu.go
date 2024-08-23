@@ -24,6 +24,8 @@ type Ppu struct {
 	currentFrame  []Pixel
 	cfMux         sync.Mutex
 
+	activeSprites []OamEntry
+
 	ctx *Context
 }
 
@@ -116,6 +118,12 @@ func (p *Ppu) doVblank() {
 }
 
 func (p *Ppu) doOam() {
+	if p.ticks == 79 {
+		p.activeSprites = p.oam.SelectObjects(
+			p.ctx.lcd.ly,
+			p.ctx.lcd.GetControl(LcdcObjecteDoubleHeight),
+		)
+	}
 	if p.ticks < 80 {
 		return
 	}

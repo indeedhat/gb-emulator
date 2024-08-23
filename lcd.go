@@ -9,7 +9,7 @@ type Lcdc uint8
 const (
 	LcdcBgwEnable Lcdc = 1 << iota
 	LcdcObjecteEnable
-	LcdcObjecteSize
+	LcdcObjecteDoubleHeight
 	LcdcBgTileArea
 	LcdcBgwTileArea
 	LcdcWindowEnable
