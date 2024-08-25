@@ -107,14 +107,14 @@ func (p *PixelFetcher) fetch() {
 	case PixFetchModeDataHigh:
 		p.mode = PixFetchModeDataLow
 		p.bgHiBit = p.ctx.membus.Read(
-			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY)),
+			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY) + 1),
 		)
 		p.loadSpriteTileData(true)
 
 	case PixFetchModeDataLow:
 		p.mode = PixFetchModeSleep
 		p.bgLoBit = p.ctx.membus.Read(
-			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY) + 1),
+			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY)),
 		)
 		p.loadSpriteTileData(false)
 
@@ -160,8 +160,8 @@ func (p *PixelFetcher) fetchPixels() {
 	xPos := p.fetched - (8 - (p.ctx.lcd.scrollX % 8))
 
 	for i := 7; i >= 0; i-- {
-		cid := getColorIdx(p.bgLoBit, p.bgHiBit, uint8(i))
-		c := getColor(p.ctx.lcd.backgroundPallet, p.bgLoBit, p.bgHiBit, uint8(i))
+		cid := getColorIdx(p.bgHiBit, p.bgLoBit, uint8(i))
+		c := getColor(p.ctx.lcd.backgroundPallet, p.bgHiBit, p.bgLoBit, uint8(i))
 
 		if !p.ctx.lcd.GetControl(LcdcBgwEnable) {
 			c = ColorPallet[p.ctx.lcd.backgroundPallet&0b11]
