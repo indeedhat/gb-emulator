@@ -214,6 +214,7 @@ func (l *Lcd) Write(addr uint16, value uint8) {
 	case 0xFF47:
 		l.backgroundPallet = value
 	case 0xFF48:
+		panic(value)
 		l.objectPallet0 = value & 0b11111100
 	case 0xFF49:
 		l.objectPallet1 = value & 0b11111100
