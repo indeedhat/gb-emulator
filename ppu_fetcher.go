@@ -72,8 +72,6 @@ func (p *PixelFetcher) fetch() {
 	switch p.mode {
 	case PixFetchModeTile:
 		p.fetchedOam = nil
-		p.fetched += 8
-		p.mode = PixFetchModeDataHigh
 
 		if p.ctx.lcd.GetControl(LcdcBgwEnable) {
 			p.bgTileId = p.ctx.membus.Read(
@@ -99,6 +97,9 @@ func (p *PixelFetcher) fetch() {
 				}
 			}
 		}
+
+		p.fetched += 8
+		p.mode = PixFetchModeDataHigh
 
 		p.spriteHiBit = make([]uint8, len(p.fetchedOam))
 		p.spriteLoBit = make([]uint8, len(p.fetchedOam))
@@ -143,9 +144,9 @@ func (p *PixelFetcher) loadSpriteTileData(hi bool) {
 		}
 
 		if hi {
-			p.spriteHiBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y))
+			p.spriteHiBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y) + 1)
 		} else {
-			p.spriteLoBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y) + 1)
+			p.spriteLoBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y))
 		}
 	}
 }
