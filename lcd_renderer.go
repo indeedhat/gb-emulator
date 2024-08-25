@@ -32,7 +32,7 @@ type LcdRenderer struct {
 func NewLcdRenderer(ctx *Context) *LcdRenderer {
 	l := &LcdRenderer{
 		ctx:             ctx,
-		displayTileData: true,
+		displayTileData: false,
 	}
 	l.init()
 
