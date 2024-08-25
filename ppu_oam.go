@@ -1,9 +1,13 @@
 package main
 
+import (
+	"sort"
+)
+
 type OamFlag uint8
 
 const (
-	OamFlagBank = 1<<iota + 3
+	OamFlagBank = 1 << (iota + 3)
 	OamFlagDmgPalette
 	OamFlagXFlip
 	OamFlagYflip
@@ -49,22 +53,32 @@ func (o *OamRam) Write(address uint16, value uint8) {
 
 func (o *OamRam) SelectObjects(y uint8, doubleHight bool) []OamEntry {
 	var (
-		offset   uint8
-		selected = make([]OamEntry, 0, 10)
+		height   uint8 = 8
+		selected       = make([]OamEntry, 0, 10)
 	)
-	if !doubleHight {
-		offset = 8
+	if doubleHight {
+		height = 16
 	}
 
 	for _, entry := range o.iterate() {
-		if y > entry.y-offset && y < entry.y+16 {
-			selected = append(selected, entry)
-		}
-
 		if len(selected) == 10 {
 			break
 		}
+
+		if entry.x == 0 {
+			continue
+		}
+
+		if entry.y > y+16 || entry.y+height <= y+16 {
+			continue
+		}
+
+		selected = append(selected, entry)
 	}
+
+	sort.SliceStable(selected, func(i, j int) bool {
+		return selected[i].x < selected[j].x
+	})
 
 	return selected
 }
@@ -75,8 +89,8 @@ func (o *OamRam) iterate() func(func(int, OamEntry) bool) {
 
 		for c := 0; c < len(o.data); c += 4 {
 			entry := OamEntry{
-				o.data[c],
 				o.data[c+1],
+				o.data[c],
 				o.data[c+2],
 				o.data[c+3],
 			}

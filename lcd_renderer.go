@@ -107,7 +107,7 @@ func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {
 
 			for x := 7; x >= 0; x-- {
 				i := (xOffset+x)*4 + (yOffset+y)*386*4
-				color := getColor(hb, lb, uint8(x))
+				color := getColor(l.ctx.lcd.backgroundPallet, hb, lb, uint8(x))
 
 				l.buffer[i] = color.R
 				l.buffer[i+1] = color.G
@@ -118,7 +118,12 @@ func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {
 	}
 }
 
-func getColor(hb, lb, bit uint8) Pixel {
+func getColor(palette, hb, lb, bit uint8) Pixel {
+	i := getColorIdx(hb, lb, bit)
+	return ColorPallet[(palette>>(i*2))&0b11]
+}
+
+func getColorIdx(hb, lb, bit uint8) int {
 	i := 0
 	if hb&(1<<bit) != 0 {
 		i += 2
@@ -128,7 +133,7 @@ func getColor(hb, lb, bit uint8) Pixel {
 		i++
 	}
 
-	return ColorPallet[i]
+	return i
 }
 
 // Layout implements ebiten.Game.
