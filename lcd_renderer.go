@@ -107,7 +107,7 @@ func (l *LcdRenderer) drawTileData(_ *ebiten.Image) {
 
 			for x := 7; x >= 0; x-- {
 				i := (xOffset+x)*4 + (yOffset+y)*386*4
-				color := getColor(l.ctx.lcd.backgroundPallet, hb, lb, uint8(x))
+				color := getColor(l.ctx.lcd.ctx.lcd.objectPallet0, hb, lb, uint8(x))
 
 				l.buffer[i] = color.R
 				l.buffer[i+1] = color.G

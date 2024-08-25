@@ -100,6 +100,9 @@ func (p *PixelFetcher) fetch() {
 			}
 		}
 
+		p.spriteHiBit = make([]uint8, len(p.fetchedOam))
+		p.spriteLoBit = make([]uint8, len(p.fetchedOam))
+
 	case PixFetchModeDataHigh:
 		p.mode = PixFetchModeDataLow
 		p.bgHiBit = p.ctx.membus.Read(
@@ -127,9 +130,6 @@ func (p *PixelFetcher) loadSpriteTileData(hi bool) {
 	if p.ctx.lcd.GetControl(LcdcObjecteDoubleHeight) {
 		height = 16
 	}
-
-	p.spriteLoBit = make([]uint8, len(p.fetchedOam))
-	p.spriteHiBit = make([]uint8, len(p.fetchedOam))
 
 	for i, entry := range p.fetchedOam {
 		y := (p.ctx.lcd.ly + 16 - entry.y) * 2
