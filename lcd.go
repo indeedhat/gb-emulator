@@ -129,7 +129,7 @@ func (l *Lcd) WinTileAddress(address uint16) uint16 {
 }
 
 func (l *Lcd) BgWinTileAddress(address uint16) uint16 {
-	if l.GetControl(LcdcWindowTileArea) {
+	if l.GetControl(LcdcBgwTileArea) {
 		return address + 0x8000
 	}
 
@@ -214,10 +214,9 @@ func (l *Lcd) Write(addr uint16, value uint8) {
 	case 0xFF47:
 		l.backgroundPallet = value
 	case 0xFF48:
-		panic(value)
-		l.objectPallet0 = value & 0b11111100
+		l.objectPallet0 = value //& 0b11111100
 	case 0xFF49:
-		l.objectPallet1 = value & 0b11111100
+		l.objectPallet1 = value //& 0b11111100
 	case 0xFF4A:
 		l.windowY = value
 	case 0xFF4B:
