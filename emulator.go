@@ -28,6 +28,7 @@ func NewEmulator(romPath string, debug bool) (*Emulator, error) {
 	NewIO(e.ctx)
 	NewPixelFetcher(e.ctx)
 	NewPpu(e.ctx)
+	NewJoypad(e.ctx)
 	NewLcd(e.ctx)
 	NewDma(e.ctx)
 

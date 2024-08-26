@@ -19,6 +19,8 @@ func NewIO(ctx *Context) {
 
 func (i *IO) Read(addr uint16) uint8 {
 	switch true {
+	case addr == 0xFF00:
+		return i.ctx.jpad.Read()
 	case addr == 0xFF01:
 		return i.serial[0]
 	case addr == 0xFF02:
@@ -37,6 +39,8 @@ func (i *IO) Read(addr uint16) uint8 {
 
 func (i *IO) Write(addr uint16, value uint8) {
 	switch true {
+	case addr == 0xFF00:
+		i.ctx.jpad.Write(value)
 	case addr == 0xFF01:
 		i.serial[0] = value
 	case addr == 0xFF02:

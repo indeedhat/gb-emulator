@@ -7,6 +7,7 @@ type Context struct {
 	cpu    *Cpu
 	debug  *Debug
 	dma    *Dma
+	jpad   *Joypad
 	lcd    *Lcd
 	membus *MemoryBus
 	pix    *PixelFetcher
