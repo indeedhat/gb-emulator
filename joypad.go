@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 const (
 	JpadModeActions = uint8(1) << 5
 	JpadModeDpad    = uint8(1) << 4
@@ -13,8 +15,8 @@ const (
 )
 
 const (
-	JpadActionSelect = uint8(1) << 3
-	JpadActionStart  = uint8(1) << 2
+	JpadActionStart  = uint8(1) << 3
+	JpadActionSelect = uint8(1) << 2
 	JpadActionB      = uint8(1) << 1
 	JpadActionA      = uint8(1)
 )
@@ -40,7 +42,8 @@ type Joypad struct {
 }
 
 func NewJoypad(ctx *Context) *Joypad {
-	return &Joypad{ctx: ctx}
+	ctx.jpad = &Joypad{ctx: ctx}
+	return ctx.jpad
 }
 
 func (j *Joypad) Read() uint8 {
@@ -67,7 +70,7 @@ func (j *Joypad) Read() uint8 {
 			value &= ^JpadActionStart
 		}
 		if j.Select {
-			value &= ^JpadActionStart
+			value &= ^JpadActionSelect
 		}
 		if j.B {
 			value &= ^JpadActionB
@@ -77,19 +80,18 @@ func (j *Joypad) Read() uint8 {
 		}
 	}
 
+	mode := ""
+	if !j.ModeDpad {
+		mode += "D"
+	}
+	if !j.ModeActions {
+		mode += "A"
+	}
+	log.Printf("Read %2s: %02x", mode, value)
 	return value
 }
 
 func (j *Joypad) Write(value uint8) {
-	j.Up = false
-	j.Down = false
-	j.Left = false
-	j.Right = false
-	j.Start = false
-	j.Select = false
-	j.A = false
-	j.B = false
-
 	j.ModeDpad = JpadModeDpad&value == 0
 	j.ModeActions = JpadModeActions&value == 0
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // colors taken from https://github.com/mitxela/swotGB/blob/master/gbjs.htm
@@ -143,7 +144,46 @@ func (l *LcdRenderer) Layout(outsideWidth int, outsideHeight int) (screenWidth i
 
 // Update implements ebiten.Game.
 func (l *LcdRenderer) Update() error {
-	// TODO: implement io
+	for _, k := range inpututil.AppendJustPressedKeys(nil) {
+		switch k {
+		case ebiten.KeyComma:
+			l.ctx.jpad.Up = true
+		case ebiten.KeyO:
+			l.ctx.jpad.Down = true
+		case ebiten.KeyE:
+			l.ctx.jpad.Right = true
+		case ebiten.KeyA:
+			l.ctx.jpad.Left = true
+		case ebiten.KeyEnter:
+			l.ctx.jpad.A = true
+		case ebiten.KeyJ:
+			l.ctx.jpad.B = true
+		case ebiten.KeyQuote:
+			l.ctx.jpad.Select = true
+		case ebiten.KeyPeriod:
+			l.ctx.jpad.Start = true
+		}
+	}
+	for _, k := range inpututil.AppendJustReleasedKeys(nil) {
+		switch k {
+		case ebiten.KeyComma:
+			l.ctx.jpad.Up = false
+		case ebiten.KeyO:
+			l.ctx.jpad.Down = false
+		case ebiten.KeyE:
+			l.ctx.jpad.Right = false
+		case ebiten.KeyA:
+			l.ctx.jpad.Left = false
+		case ebiten.KeyEnter:
+			l.ctx.jpad.A = false
+		case ebiten.KeyJ:
+			l.ctx.jpad.B = false
+		case ebiten.KeyQuote:
+			l.ctx.jpad.Select = false
+		case ebiten.KeyPeriod:
+			l.ctx.jpad.Start = false
+		}
+	}
 	return nil
 }
 
