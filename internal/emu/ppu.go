@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"sync"
@@ -107,6 +107,11 @@ func (p *Ppu) doVblank() {
 		if !p.ctx.pix.done {
 			p.cfMux.Lock()
 			copy(p.currentFrame, p.nextFrame)
+
+			// send to renderer
+			frame := make([]Pixel, len(p.currentFrame))
+			copy(frame, p.currentFrame)
+			p.ctx.FrameCh <- frame
 			p.cfMux.Unlock()
 
 			copy(p.nextFrame, p.blankFrame)

@@ -1,4 +1,4 @@
-package main
+package emu
 
 func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) {
 	c.ctx.EmuCycle(1)

@@ -1,4 +1,4 @@
-package main
+package emu
 
 type Dma struct {
 	Active bool

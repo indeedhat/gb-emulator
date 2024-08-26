@@ -1,4 +1,4 @@
-package main
+package emu
 
 type Context struct {
 	ticks uint64
@@ -14,6 +14,16 @@ type Context struct {
 	ppu    *Ppu
 	timer  *Timer
 	io     *IO
+
+	FrameCh  chan []Pixel
+	JoypadCh chan KeyEvent
+}
+
+func NewContext() *Context {
+	return &Context{
+		FrameCh:  make(chan []Pixel, 2),
+		JoypadCh: make(chan KeyEvent, 2),
+	}
 }
 
 func (c *Context) EmuCycle(i int) {

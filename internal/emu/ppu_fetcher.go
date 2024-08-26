@@ -1,4 +1,4 @@
-package main
+package emu
 
 type PixFetchMode uint8
 

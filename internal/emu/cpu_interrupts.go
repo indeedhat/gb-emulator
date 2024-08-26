@@ -1,4 +1,4 @@
-package main
+package emu
 
 const (
 	InterruptVBlank uint8 = 1 << iota

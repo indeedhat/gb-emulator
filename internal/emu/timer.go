@@ -1,4 +1,4 @@
-package main
+package emu
 
 type Timer struct {
 	div  uint16

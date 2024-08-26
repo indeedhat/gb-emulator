@@ -1,4 +1,4 @@
-package main
+package emu
 
 import (
 	"time"
@@ -11,15 +11,16 @@ type Emulator struct {
 	ctx *Context
 }
 
-func NewEmulator(romPath string, debug bool) (*Emulator, error) {
+func NewEmulator(romPath string, debug bool) (*Emulator, *Context, error) {
 	e := &Emulator{}
 
 	cartridge, err := LoadCartridge(romPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	e.ctx = &Context{cart: cartridge}
+	e.ctx = NewContext()
+	e.ctx.cart = cartridge
 
 	NewMemoryBus(e.ctx)
 	NewCpu(e.ctx)
@@ -34,7 +35,7 @@ func NewEmulator(romPath string, debug bool) (*Emulator, error) {
 
 	e.ctx.debug.enbled = debug
 
-	return e, nil
+	return e, e.ctx, nil
 }
 
 func (e *Emulator) Run() error {

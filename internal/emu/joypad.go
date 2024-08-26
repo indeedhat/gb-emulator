@@ -1,6 +1,4 @@
-package main
-
-import "log"
+package emu
 
 const (
 	JpadModeActions = uint8(1) << 5
@@ -20,6 +18,25 @@ const (
 	JpadActionB      = uint8(1) << 1
 	JpadActionA      = uint8(1)
 )
+
+type KeyCode uint8
+
+const (
+	KeyA KeyCode = iota
+	KeyB
+	KeySelect
+	KeyStart
+	KeyUp
+	KeyRight
+	KeyDown
+	KeyLeft
+	KeyUnknown
+)
+
+type KeyEvent struct {
+	Key  KeyCode
+	Down bool
+}
 
 type Joypad struct {
 	// data mode registers
@@ -43,6 +60,30 @@ type Joypad struct {
 
 func NewJoypad(ctx *Context) *Joypad {
 	ctx.jpad = &Joypad{ctx: ctx}
+
+	go func() {
+		for press := range ctx.JoypadCh {
+			switch press.Key {
+			case KeyUp:
+				ctx.jpad.Up = press.Down
+			case KeyDown:
+				ctx.jpad.Down = press.Down
+			case KeyRight:
+				ctx.jpad.Right = press.Down
+			case KeyLeft:
+				ctx.jpad.Left = press.Down
+			case KeyA:
+				ctx.jpad.A = press.Down
+			case KeyB:
+				ctx.jpad.B = press.Down
+			case KeySelect:
+				ctx.jpad.Select = press.Down
+			case KeyStart:
+				ctx.jpad.Start = press.Down
+			}
+		}
+	}()
+
 	return ctx.jpad
 }
 
@@ -80,14 +121,6 @@ func (j *Joypad) Read() uint8 {
 		}
 	}
 
-	mode := ""
-	if !j.ModeDpad {
-		mode += "D"
-	}
-	if !j.ModeActions {
-		mode += "A"
-	}
-	log.Printf("Read %2s: %02x", mode, value)
 	return value
 }
 

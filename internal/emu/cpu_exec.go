@@ -1,4 +1,4 @@
-package main
+package emu
 
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
 	if c.registers.CheckFlag(instruction.Condition) {

@@ -1,4 +1,4 @@
-package main
+package emu
 
 // https://gbdev.io/gb-opcodes/optables/
 
