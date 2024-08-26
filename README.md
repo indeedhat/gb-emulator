@@ -19,3 +19,20 @@ Select -> Quote
 make build
 ./build/gb-emu ./roms/tetris.gb
 ```
+
+
+## TODO (Emulation)
+- [ ] Bank switching
+- [ ] Sound
+- [ ] Window scroll (still work to do)
+
+## TODO (User Interface)
+- [ ] file menu
+    - [ ] load rom
+    - [ ] save state
+    - [ ] load state
+- [ ] debug windows
+    - [ ] tile maps
+    - [ ] Cpu registers
+    - [ ] Input
+
