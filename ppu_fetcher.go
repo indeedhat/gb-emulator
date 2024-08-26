@@ -22,6 +22,8 @@ type PixelFetcher struct {
 	mapX    uint8
 	mapY    uint8
 
+	windowX uint8
+
 	frame int
 	done  bool
 
@@ -71,38 +73,7 @@ func (p *PixelFetcher) Process() {
 func (p *PixelFetcher) fetch() {
 	switch p.mode {
 	case PixFetchModeTile:
-		p.fetchedOam = nil
-
-		if p.ctx.lcd.GetControl(LcdcBgwEnable) {
-			p.bgTileId = p.ctx.membus.Read(
-				p.ctx.lcd.BgTileAddress(uint16(p.mapX/8) + uint16(p.mapY/8)*32),
-			)
-			if !p.ctx.lcd.GetControl(LcdcBgwTileArea) {
-				p.bgTileId += 128
-			}
-		}
-
-		if p.ctx.lcd.GetControl(LcdcObjecteEnable) && len(p.ctx.ppu.activeSprites) > 0 {
-			for _, entry := range p.ctx.ppu.activeSprites {
-				x := (entry.x - 8) + p.ctx.lcd.scrollX%8
-
-				if (x >= p.fetched && x < p.fetched+8) ||
-					(x+8 >= p.fetched && x+8 < p.fetched+8) {
-
-					p.fetchedOam = append(p.fetchedOam, entry)
-				}
-
-				if len(p.fetchedOam) == 3 {
-					break
-				}
-			}
-		}
-
-		p.fetched += 8
-		p.mode = PixFetchModeDataHigh
-
-		p.spriteHiBit = make([]uint8, len(p.fetchedOam))
-		p.spriteLoBit = make([]uint8, len(p.fetchedOam))
+		p.doFetchModeTile()
 
 	case PixFetchModeDataHigh:
 		p.mode = PixFetchModeDataLow
@@ -124,6 +95,53 @@ func (p *PixelFetcher) fetch() {
 	case PixFetchModePush:
 		p.fetchPixels()
 	}
+
+}
+
+func (p *PixelFetcher) doFetchModeTile() {
+	p.fetchedOam = nil
+
+	if p.ctx.lcd.GetControl(LcdcBgwEnable) {
+		if p.windowVisible() &&
+			(p.fetched+7 >= p.ctx.lcd.windowX && p.fetched+7 < p.ctx.lcd.windowX+PpuYRes+14) &&
+			(p.ctx.lcd.ly >= p.ctx.lcd.windowY && p.ctx.lcd.ly < p.ctx.lcd.windowY+PpuXRes) {
+
+			p.bgTileId = p.ctx.membus.Read(p.ctx.lcd.WinTileAddress(
+				(uint16(p.fetched+7-p.ctx.lcd.windowX) / 8) +
+					(uint16(p.windowX)/8)*32,
+			))
+		} else {
+			p.bgTileId = p.ctx.membus.Read(
+				p.ctx.lcd.BgTileAddress(uint16(p.mapX/8) + uint16(p.mapY/8)*32),
+			)
+		}
+
+		if !p.ctx.lcd.GetControl(LcdcBgwTileArea) {
+			p.bgTileId += 128
+		}
+	}
+
+	if p.ctx.lcd.GetControl(LcdcObjecteEnable) && len(p.ctx.ppu.activeSprites) > 0 {
+		for _, entry := range p.ctx.ppu.activeSprites {
+			x := (entry.x - 8) + p.ctx.lcd.scrollX%8
+
+			if (x >= p.fetched && x < p.fetched+8) ||
+				(x+8 >= p.fetched && x+8 < p.fetched+8) {
+
+				p.fetchedOam = append(p.fetchedOam, entry)
+			}
+
+			if len(p.fetchedOam) == 3 {
+				break
+			}
+		}
+	}
+
+	p.fetched += 8
+	p.mode = PixFetchModeDataHigh
+
+	p.spriteHiBit = make([]uint8, len(p.fetchedOam))
+	p.spriteLoBit = make([]uint8, len(p.fetchedOam))
 }
 
 func (p *PixelFetcher) loadSpriteTileData(hi bool) {
@@ -238,6 +256,15 @@ func (p *PixelFetcher) pushPixel() {
 	}
 
 	p.lineX++
+}
+
+func (p *PixelFetcher) windowVisible() bool {
+	if !p.ctx.lcd.GetControl(LcdcWindowEnable) {
+		return false
+	}
+
+	return p.ctx.lcd.windowX >= 0 && p.ctx.lcd.windowX <= 166 &&
+		p.ctx.lcd.windowY >= 0 && p.ctx.lcd.windowY < PpuYRes
 }
 
 type PixelFifo struct {

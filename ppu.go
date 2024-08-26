@@ -23,6 +23,7 @@ type Ppu struct {
 	blankFrame    []Pixel
 	currentFrame  []Pixel
 	cfMux         sync.Mutex
+	windowX       uint
 
 	activeSprites []OamEntry
 
@@ -101,6 +102,7 @@ func (p *Ppu) doVblank() {
 	if p.ctx.lcd.ly >= PpuLinesPerFrame {
 		p.ctx.lcd.SetMode(LcdModeOam)
 		p.ctx.lcd.ly = 0
+		p.ctx.pix.windowX = 0
 
 		if !p.ctx.pix.done {
 			p.cfMux.Lock()

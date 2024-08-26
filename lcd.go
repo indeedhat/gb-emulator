@@ -150,6 +150,13 @@ func (l *Lcd) SetMode(mode LcdMode) {
 }
 
 func (l *Lcd) IncrementLine() {
+	if l.ctx.pix.windowVisible() &&
+		l.ly >= l.windowY &&
+		l.ly < l.windowY+PpuYRes {
+
+		l.ctx.pix.windowX++
+	}
+
 	l.ly++
 
 	if l.ly != l.lyCompare {
