@@ -1,6 +1,3 @@
 /roms
-/gb-emulator
-/log-compare
-/frame-log-compare
-/lcd-log-compare
+/build
 /*.log

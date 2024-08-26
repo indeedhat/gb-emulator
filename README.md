@@ -1,5 +1,19 @@
 # Gameboy emulator written in go
-lets be honest, ill never actually finish this project
 
-# Issues
-seems to be a problem with the DMA process, ending with invalid data in OAM
+Currently technically functional although it only works with games that don't require window scroling or cartridge bank switching
+
+## Keymap (Sorry its setup for dvorak)
+> Up     -> Comma
+> Right  -> E
+> Down   -> O
+> Left   -> A
+> A      -> Enter
+> B      -> J
+> Start  -> Period
+> Select -> Quote
+
+## Usage
+```
+make build
+./build/gb-emu ./roms/tetris.gb
+```
