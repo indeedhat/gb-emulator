@@ -33,9 +33,7 @@ func LoadCartridge(path string) (*Cartridge, error) {
 		return nil, err
 	}
 
-	c.initMbc(data)
-
-	spew.Dump(c.Header)
+	c.initMbc(path, data)
 
 	return &c, nil
 }
@@ -48,12 +46,17 @@ func (c *Cartridge) Write(address uint16, value byte) {
 	c.Data.Write(address, value)
 }
 
-func (c *Cartridge) initMbc(data []byte) {
+func (c *Cartridge) initMbc(path string, data []byte) {
+	var err error
+
 	switch c.Header.CartType {
 	case CartTypeRomOnly:
 		c.Data = MBCNone(data)
 	case CartTypeMbc1, CartTypeMbc1Ram, CartTypeMbc1RamBattery:
-		c.Data = NewMBC1(data, c.Header.RomBanks(), c.Header.RamBanks())
+		c.Data, err = NewMBC1(path, data, c.Header)
+		if err != nil {
+			log.Fatalf("failed to init MBC1: %s", err)
+		}
 	// case CartTypeMbc3, CartTypeMbc3Ram, CartTypeMbc3RamBattery, CartTypeMbc3TimerBattery, CartTypeMbc3TimerRamBattery:
 	// 	c.Data = NewMBC3(data, c.Header.RomBanks(), c.Header.RamBanks())
 	default:
@@ -65,6 +68,8 @@ func (c *Cartridge) initMbc(data []byte) {
 type MBC interface {
 	Read(address uint16) byte
 	Write(address uint16, value byte)
+	Save() error
+	Load() error
 }
 
 type MBCNone []byte
@@ -75,6 +80,16 @@ func (m MBCNone) Read(address uint16) byte {
 
 func (m MBCNone) Write(address uint16, value byte) {
 	log.Print("cart.write not implemented")
+}
+
+func (m MBCNone) Save() error {
+	// NB: no battery backing for this nbc controller
+	return nil
+}
+
+func (m MBCNone) Load() error {
+	// NB: no battery backing for this nbc controller
+	return nil
 }
 
 type CartHeader struct {

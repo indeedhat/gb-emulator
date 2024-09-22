@@ -1,6 +1,14 @@
 package emu
 
+import (
+	"errors"
+	"io/fs"
+	"os"
+)
+
 type MBC1 struct {
+	path string
+
 	romBanks uint16
 	romData  []byte
 
@@ -14,16 +22,24 @@ type MBC1 struct {
 	ramBank  uint8
 	mode     uint8
 
-	variant uint8
+	hasBattery bool
 }
 
-func NewMBC1(data []byte, romBanks, ramBanks uint16) *MBC1 {
-	return &MBC1{
-		romBanks: romBanks,
-		romData:  data,
-		ramBanks: ramBanks,
-		ramData:  make([]byte, 0x2000*uint32(ramBanks)),
+func NewMBC1(path string, data []byte, header *CartHeader) (*MBC1, error) {
+	m := &MBC1{
+		path:       path,
+		romBanks:   header.RomBanks(),
+		romData:    data,
+		ramBanks:   header.RamBanks(),
+		ramData:    make([]byte, 0x2000*uint32(header.RamBanks())),
+		hasBattery: CartTypeMbc1RamBattery == header.CartType,
 	}
+
+	if err := m.Load(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (m *MBC1) Read(address uint16) byte {
@@ -89,3 +105,32 @@ func (m *MBC1) Write(address uint16, value byte) {
 		m.ramData[offset+uint32(address-0xA000)] = value
 	}
 }
+
+// Load implements MBC.
+func (m *MBC1) Load() error {
+	if !m.hasBattery {
+		return nil
+	}
+
+	data, err := os.ReadFile(m.path + ".gbsav")
+	if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	if data != nil {
+		m.ramData = data
+	}
+
+	return nil
+}
+
+// Save implements MBC.
+func (m *MBC1) Save() error {
+	if !m.hasBattery {
+		return nil
+	}
+
+	return os.WriteFile(m.path+".gbsav", m.ramData, 0644)
+}
+
+var _ MBC = (*MBC1)(nil)

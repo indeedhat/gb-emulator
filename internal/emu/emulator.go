@@ -1,6 +1,7 @@
 package emu
 
 import (
+	"log"
 	"time"
 )
 
@@ -41,6 +42,8 @@ func NewEmulator(romPath string, debug bool) (*Emulator, *Context, error) {
 func (e *Emulator) Run() error {
 	e.running = true
 
+	go e.saveBatteryRam()
+
 	for {
 		if e.paused {
 			time.Sleep(10 * time.Millisecond)
@@ -49,6 +52,15 @@ func (e *Emulator) Run() error {
 
 		if err := e.ctx.cpu.Step(); err != nil {
 			return err
+		}
+	}
+}
+
+func (e *Emulator) saveBatteryRam() {
+	ticker := time.NewTicker(1 * time.Second)
+	for range ticker.C {
+		if err := e.ctx.cart.Data.Save(); err != nil {
+			log.Printf("failed to save battery backed ram: %s", err)
 		}
 	}
 }
