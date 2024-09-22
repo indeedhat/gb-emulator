@@ -57,8 +57,11 @@ func (c *Cartridge) initMbc(path string, data []byte) {
 		if err != nil {
 			log.Fatalf("failed to init MBC1: %s", err)
 		}
-	// case CartTypeMbc3, CartTypeMbc3Ram, CartTypeMbc3RamBattery, CartTypeMbc3TimerBattery, CartTypeMbc3TimerRamBattery:
-	// 	c.Data = NewMBC3(data, c.Header.RomBanks(), c.Header.RamBanks())
+	case CartTypeMbc3, CartTypeMbc3Ram, CartTypeMbc3RamBattery, CartTypeMbc3TimerBattery, CartTypeMbc3TimerRamBattery:
+		c.Data, err = NewMBC3(path, data, c.Header)
+		if err != nil {
+			log.Fatalf("failed to init MBC3: %s", err)
+		}
 	default:
 		spew.Dump(c.Header)
 		panic("mbc type not implemented")

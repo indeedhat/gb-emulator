@@ -59,6 +59,10 @@ func (e *Emulator) Run() error {
 func (e *Emulator) saveBatteryRam() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
+		if mbc3, ok := e.ctx.cart.Data.(*MBC3); ok {
+			mbc3.RtcTick()
+		}
+
 		if err := e.ctx.cart.Data.Save(); err != nil {
 			log.Printf("failed to save battery backed ram: %s", err)
 		}
