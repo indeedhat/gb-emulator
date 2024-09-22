@@ -314,7 +314,7 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 		c.execCB(instruction, data)
 
 	default:
-		return errors.New("not implemented")
+		return errors.New("instruction not implemented")
 	}
 	return nil
 }

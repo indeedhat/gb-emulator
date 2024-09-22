@@ -392,8 +392,8 @@ func (c *Cpu) execSCF() {
 
 func (c *Cpu) execSTOP(_ uint16) {
 	// writing to the timers div register resets it
-	c.ctx.membus.Write(0xFF04, 0x01)
-	panic("not implemented")
+	// c.ctx.membus.Write(0xFF04, 0x01)
+	// panic("stop not implemented")
 }
 
 func (c *Cpu) execHALT() {

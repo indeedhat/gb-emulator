@@ -10,7 +10,7 @@ import (
 )
 
 type Cartridge struct {
-	Data   []byte
+	Data   MBC
 	Header *CartHeader
 }
 
@@ -24,13 +24,16 @@ func LoadCartridge(path string) (*Cartridge, error) {
 		Header: &CartHeader{},
 	}
 
-	if c.Data, err = io.ReadAll(fh); err != nil {
+	data, err := io.ReadAll(fh)
+	if err != nil {
 		return nil, err
 	}
 
-	if err = c.Header.Parse(c.Data); err != nil {
+	if err = c.Header.Parse(data); err != nil {
 		return nil, err
 	}
+
+	c.initMbc(data)
 
 	spew.Dump(c.Header)
 
@@ -38,10 +41,39 @@ func LoadCartridge(path string) (*Cartridge, error) {
 }
 
 func (c *Cartridge) Read(address uint16) byte {
-	return c.Data[address]
+	return c.Data.Read(address)
 }
 
 func (c *Cartridge) Write(address uint16, value byte) {
+	c.Data.Write(address, value)
+}
+
+func (c *Cartridge) initMbc(data []byte) {
+	switch c.Header.CartType {
+	case CartTypeRomOnly:
+		c.Data = MBCNone(data)
+	case CartTypeMbc1, CartTypeMbc1Ram, CartTypeMbc1RamBattery:
+		c.Data = NewMBC1(data, c.Header.RomBanks(), c.Header.RamBanks())
+	// case CartTypeMbc3, CartTypeMbc3Ram, CartTypeMbc3RamBattery, CartTypeMbc3TimerBattery, CartTypeMbc3TimerRamBattery:
+	// 	c.Data = NewMBC3(data, c.Header.RomBanks(), c.Header.RamBanks())
+	default:
+		spew.Dump(c.Header)
+		panic("mbc type not implemented")
+	}
+}
+
+type MBC interface {
+	Read(address uint16) byte
+	Write(address uint16, value byte)
+}
+
+type MBCNone []byte
+
+func (m MBCNone) Read(address uint16) byte {
+	return m[address]
+}
+
+func (m MBCNone) Write(address uint16, value byte) {
 	log.Print("cart.write not implemented")
 }
 
@@ -105,7 +137,7 @@ func (h *CartHeader) Parse(data []byte) error {
 	return nil
 }
 
-func (h *CartHeader) RomBanks() int {
+func (h *CartHeader) RomBanks() uint16 {
 	switch h.RomSize {
 	case 0x00:
 		return 2
@@ -125,6 +157,20 @@ func (h *CartHeader) RomBanks() int {
 		return 256
 	case 0x08:
 		return 512
+	}
+	return 0
+}
+
+func (h *CartHeader) RamBanks() uint16 {
+	switch h.RomSize {
+	case 0x02:
+		return 1
+	case 0x03:
+		return 4
+	case 0x04:
+		return 16
+	case 0x05:
+		return 8
 	}
 	return 0
 }

@@ -59,9 +59,9 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		}
 
 		value := b.ctx.ppu.oam.Read(address)
-		if address == 0xFE40 {
-			log.Fatalf("r %d,%d", address, value)
-		}
+		// if address == 0xFE40 {
+		// 	log.Fatalf("r %d,%d", address, value)
+		// }
 		return value
 	case address < 0xFF00:
 		// reserved and unusable
