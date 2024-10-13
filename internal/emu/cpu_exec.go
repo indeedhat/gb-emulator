@@ -1,46 +1,50 @@
 package emu
 
-func (c *Cpu) execJP(instruction CpuInstriction, data uint16) {
-	if c.registers.CheckFlag(instruction.Condition) {
-		c.registers.PC = data
-		c.ctx.EmuCycle(1)
+func (c *Cpu) execJP(instruction CpuInstriction, data uint16) bool {
+	if !c.registers.CheckFlag(instruction.Condition) {
+		return false
 	}
+
+	c.registers.PC = data
+	return true
 }
 
-func (c *Cpu) execJR(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execJR(instruction CpuInstriction, data uint16) bool {
 	offset := int8(uint8(data & 0xFF))
 	// NB: this mess handles the int/uint conversions properly without having to resort to unsafe pointers
-	c.execJP(instruction, uint16(int16((int32(c.registers.PC)+int32(offset))&0xFFFF)))
+	return c.execJP(instruction, uint16(int16((int32(c.registers.PC)+int32(offset))&0xFFFF)))
 }
 
-func (c *Cpu) execXOR(data uint16) {
+func (c *Cpu) execXOR(data uint16) bool {
 	var isZero uint8
 	c.registers.A ^= uint8(data)
 	if c.registers.A == 0 {
 		isZero = 1
 	}
 	c.registers.SetFlags(isZero, 0, 0, 0)
+
+	return true
 }
 
-func (c *Cpu) execDI() {
+func (c *Cpu) execDI() bool {
 	c.ime = false
+	return true
 }
 
-func (c *Cpu) execEI() {
+func (c *Cpu) execEI() bool {
 	c.enablingIME = true
+	return true
 }
 
-func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	if nil != destAddress {
 		if instruction.Register2.Is16bit() {
-			c.ctx.EmuCycle(1)
 			c.ctx.membus.Write16(destAddress.Address, data)
 		} else {
 			c.ctx.membus.Write(destAddress.Address, uint8(data&0xFF))
 		}
 
-		c.ctx.EmuCycle(1)
-		return
+		goto done
 	}
 
 	if instruction.AddressMode == AddressModeHL_SPR {
@@ -57,28 +61,28 @@ func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDe
 		}
 		c.registers.SetFlags(0, 0, hflag, cflag)
 		c.writeToRegister(RegisterTypeHL, final)
-		return
+
+		goto done
 	}
 
 	c.writeToRegister(instruction.Register1, data)
+
+done:
+	return true
 }
 
-func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	if instruction.Register1 == RegisterTypeA {
 		c.writeToRegister(RegisterTypeA, uint16(c.ctx.membus.Read(0xFF00|data)))
 	} else {
 		c.ctx.membus.Write(destAddress.Address, c.registers.A)
 	}
 
-	c.ctx.EmuCycle(1)
+	return true
 }
 
-func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	data++
-	if instruction.Register1.Is16bit() {
-		c.ctx.EmuCycle(1)
-	}
-
 	if destAddress != nil || !instruction.Register1.Is16bit() {
 		data &= 0x00FF
 	}
@@ -98,14 +102,12 @@ func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	if !instruction.Register1.Is16bit() || destAddress != nil {
 		c.registers.SetFlags(zflag, 0, hflag, 0xFF)
 	}
+
+	return true
 }
 
-func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) {
+func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	data--
-	if instruction.Register1.Is16bit() {
-		c.ctx.EmuCycle(1)
-	}
-
 	if destAddress != nil || !instruction.Register1.Is16bit() {
 		data &= 0x00FF
 	}
@@ -125,15 +127,16 @@ func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	if !instruction.Register1.Is16bit() || destAddress != nil {
 		c.registers.SetFlags(zflag, 1, hflag, 0xFF)
 	}
+
+	return true
 }
 
-func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execADD(instruction CpuInstriction, data uint16) bool {
 	var zflag, hflag, cflag uint8
 	rval := c.readFromRegister(instruction.Register1)
 	final := rval + data
 
 	if instruction.Register1 == RegisterTypeSP {
-		c.ctx.EmuCycle(1)
 		final = uint16(int16(rval) + int16(int8(data&0xFF)))
 		hflag = halfCarry(data, rval, rval+data)
 		if rval&0xF+data&0xF >= 0x10 {
@@ -143,7 +146,6 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 			cflag = 1
 		}
 	} else if instruction.Register1.Is16bit() {
-		c.ctx.EmuCycle(1)
 		zflag = 0xFF
 		hflag = halfCarry16(rval, data)
 		cflag = carry16(rval, data)
@@ -159,9 +161,11 @@ func (c *Cpu) execADD(instruction CpuInstriction, data uint16) {
 
 	c.writeToRegister(instruction.Register1, final)
 	c.registers.SetFlags(zflag, 0, hflag, cflag)
+
+	return true
 }
 
-func (c *Cpu) execADC(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execADC(instruction CpuInstriction, data uint16) bool {
 	rval := c.readFromRegister(instruction.Register1)
 	cval := uint16(c.registers.GetFlag(CpuFlagC))
 	final := uint8((rval + data + cval) & 0x00FF)
@@ -180,9 +184,11 @@ func (c *Cpu) execADC(instruction CpuInstriction, data uint16) {
 	c.writeToRegister(instruction.Register1, uint16(final))
 
 	c.registers.SetFlags(zflag, 0, hflag, cflag)
+
+	return true
 }
 
-func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) bool {
 	rval := c.readFromRegister(instruction.Register1)
 	final := rval - data
 
@@ -195,9 +201,11 @@ func (c *Cpu) execSUB(instruction CpuInstriction, data uint16) {
 
 	c.writeToRegister(instruction.Register1, final)
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
+
+	return true
 }
 
-func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) bool {
 	var zflag, cflag, hflag uint8
 	rval := c.readFromRegister(instruction.Register1)
 	cval := uint16(c.registers.GetFlag(CpuFlagC))
@@ -216,9 +224,11 @@ func (c *Cpu) execSBC(instruction CpuInstriction, data uint16) {
 	}
 
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
+
+	return true
 }
 
-func (c *Cpu) execAND(_ CpuInstriction, data uint16) {
+func (c *Cpu) execAND(_ CpuInstriction, data uint16) bool {
 	c.registers.A &= uint8(data)
 
 	var zflag uint8
@@ -227,9 +237,11 @@ func (c *Cpu) execAND(_ CpuInstriction, data uint16) {
 	}
 
 	c.registers.SetFlags(zflag, 0, 1, 0)
+
+	return true
 }
 
-func (c *Cpu) execOR(_ CpuInstriction, data uint16) {
+func (c *Cpu) execOR(_ CpuInstriction, data uint16) bool {
 	c.registers.A |= uint8(data)
 	var zflag uint8
 	if c.registers.A == 0 {
@@ -237,31 +249,35 @@ func (c *Cpu) execOR(_ CpuInstriction, data uint16) {
 	}
 
 	c.registers.SetFlags(zflag, 0, 0, 0)
+
+	return true
 }
 
-func (c *Cpu) execCALL(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execCALL(instruction CpuInstriction, data uint16) bool {
 	if instruction.Condition != ConditionTypeNone && !c.registers.CheckFlag(instruction.Condition) {
-		return
+		return false
 	}
 
-	c.ctx.EmuCycle(2)
 	c.stackPush(c.registers.PC)
 	c.registers.PC = data
-	c.ctx.EmuCycle(1)
+
+	return true
 }
 
-func (c *Cpu) execCCF() {
+func (c *Cpu) execCCF() bool {
 	var cflag uint8
 	if c.registers.GetFlag(CpuFlagC) == 0 {
 		cflag = 1
 	}
 	c.registers.SetFlags(0xFF, 0, 0, cflag)
+
+	return true
 }
 
-func (c *Cpu) execCP(instruction CpuInstriction, data uint16) {
+func (c *Cpu) execCP(instruction CpuInstriction, data uint16) bool {
 	if instruction.Register2 == RegisterTypeA {
 		c.registers.SetFlags(1, 1, 0, 0)
-		return
+		return true
 	}
 
 	rval := c.readFromRegister(instruction.Register1)
@@ -275,14 +291,17 @@ func (c *Cpu) execCP(instruction CpuInstriction, data uint16) {
 	hflag := halfCarry(data, rval, final)
 	cflag := carry(data, rval, final)
 	c.registers.SetFlags(zflag, 1, hflag, cflag)
+
+	return true
 }
 
-func (c *Cpu) execCPL() {
+func (c *Cpu) execCPL() bool {
 	c.registers.A = ^c.registers.A
 	c.registers.SetFlags(0xFF, 1, 1, 0xFF)
+	return true
 }
 
-func (c *Cpu) execDAA() {
+func (c *Cpu) execDAA() bool {
 	var cflag, zflag uint8
 	var adjustment uint8
 
@@ -309,93 +328,98 @@ func (c *Cpu) execDAA() {
 	}
 
 	c.registers.SetFlags(zflag, 0xFF, 0, cflag)
+
+	return true
 }
 
-func (c *Cpu) execPOP(Instruction CpuInstriction) {
+func (c *Cpu) execPOP(Instruction CpuInstriction) bool {
 	data := c.stackPop()
-	c.ctx.EmuCycle(2)
 
 	if Instruction.Register1 == RegisterTypeAF {
 		c.writeToRegister(Instruction.Register1, data&0xFFF0)
 	} else {
 		c.writeToRegister(Instruction.Register1, data)
 	}
+
+	return true
 }
 
-func (c *Cpu) execPUSH(Instruction CpuInstriction) {
+func (c *Cpu) execPUSH(Instruction CpuInstriction) bool {
 	data := c.readFromRegister(Instruction.Register1)
-	c.ctx.EmuCycle(2)
-
 	c.stackPush(data)
-	c.ctx.EmuCycle(1)
+	return true
 }
 
-func (c *Cpu) execRET(instruction CpuInstriction) {
-	if instruction.Condition != ConditionTypeNone {
-		c.ctx.EmuCycle(1)
-	}
-
+func (c *Cpu) execRET(instruction CpuInstriction) bool {
 	if !c.registers.CheckFlag(instruction.Condition) {
-		return
+		return false
 	}
 
 	data := c.stackPop()
-	c.ctx.EmuCycle(2)
-
 	c.registers.PC = data
-	c.ctx.EmuCycle(1)
+
+	return true
 }
 
-func (c *Cpu) execRETI(instruction CpuInstriction) {
+func (c *Cpu) execRETI(instruction CpuInstriction) bool {
 	c.ime = true
-	c.execRET(instruction)
+	return c.execRET(instruction)
 }
 
-func (c *Cpu) execRLA() {
+func (c *Cpu) execRLA() bool {
 	cflag := c.registers.GetFlag(CpuFlagC)
 	c.registers.SetFlags(0, 0, 0, c.registers.A&0x80>>7)
 	c.registers.A = (c.registers.A << 1) | cflag
+
+	return true
 }
 
-func (c *Cpu) execRLCA() {
+func (c *Cpu) execRLCA() bool {
 	msb := c.registers.A & 0x80 >> 7
 	c.registers.SetFlags(0, 0, 0, msb)
 	c.registers.A = (c.registers.A << 1) | msb
+
+	return true
 }
 
-func (c *Cpu) execRRA() {
+func (c *Cpu) execRRA() bool {
 	cflag := c.registers.GetFlag(CpuFlagC)
 	c.registers.SetFlags(0, 0, 0, c.registers.A&0x01)
 	c.registers.A = (c.registers.A >> 1) | cflag<<7
+	return true
 }
 
-func (c *Cpu) execRRCA() {
+func (c *Cpu) execRRCA() bool {
 	lsb := c.registers.A & 0x01
 	c.registers.SetFlags(0, 0, 0, lsb)
 	c.registers.A = (c.registers.A >> 1) | lsb<<7
+	return true
 }
 
-func (c *Cpu) execRST(instruction CpuInstriction) {
+func (c *Cpu) execRST(instruction CpuInstriction) bool {
 	if instruction.Condition != ConditionTypeNone && !c.registers.CheckFlag(instruction.Condition) {
-		return
+		return false
 	}
 
-	c.ctx.EmuCycle(2)
 	c.stackPush(c.registers.PC)
 	c.registers.PC = uint16(instruction.Param) & 0xFF
-	c.ctx.EmuCycle(1)
+
+	return true
 }
 
-func (c *Cpu) execSCF() {
+func (c *Cpu) execSCF() bool {
 	c.registers.SetFlags(0xFF, 0, 0, 1)
+	return true
 }
 
-func (c *Cpu) execSTOP(_ uint16) {
+func (c *Cpu) execSTOP(_ uint16) bool {
 	// writing to the timers div register resets it
 	// c.ctx.membus.Write(0xFF04, 0x01)
 	// panic("stop not implemented")
+	return true
 }
 
-func (c *Cpu) execHALT() {
+func (c *Cpu) execHALT() bool {
 	c.halted = true
+	return true
 }

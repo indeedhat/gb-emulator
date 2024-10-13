@@ -26,7 +26,7 @@ func NewContext() *Context {
 	}
 }
 
-func (c *Context) EmuCycle(i int) {
+func (c *Context) EmuCycle(i uint8) {
 	for range i {
 		for range 4 {
 			c.ticks++

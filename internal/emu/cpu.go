@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -87,19 +86,19 @@ func (c *Cpu) Step() error {
 	} else {
 		pc := c.registers.PC
 		_, instruction := c.fetchIsntruction()
-		c.ctx.EmuCycle(1)
-
 		data, destAddress := c.fetchData(instruction)
 
 		if c.ctx.debug.enbled {
-			// log.Print(c.String(pc))
 			log.Print(c.ctx.lcd.String(pc))
-
 			c.ctx.debug.Update()
 			c.ctx.debug.Print()
 		}
 
-		c.executeInstruction(instruction, data, destAddress)
+		if c.executeInstruction(instruction, data, destAddress) {
+			c.ctx.EmuCycle(instruction.CyclesTaken)
+		} else {
+			c.ctx.EmuCycle(instruction.CyclesUntaken)
+		}
 	}
 
 	if c.ime {
@@ -148,22 +147,18 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 	case AddressModeR_R:
 		data = c.readFromRegister(instruction.Register2)
 
-	case AddressModeR_N16:
-		fallthrough
-	case AddressModeN16:
+	case AddressModeR_N16,
+		AddressModeN16:
+
 		data = c.ctx.membus.Read16(c.registers.PC)
-		c.ctx.EmuCycle(2)
 		c.registers.PC += 2
 
-	case AddressModeHL_SPR:
-		fallthrough
-	case AddressModeR_A8:
-		fallthrough
-	case AddressModeR_N8:
-		fallthrough
-	case AddressModeN8:
+	case AddressModeHL_SPR,
+		AddressModeR_A8,
+		AddressModeR_N8,
+		AddressModeN8:
+
 		data = uint16(c.ctx.membus.Read(c.registers.PC))
-		c.ctx.EmuCycle(1)
 		c.registers.PC++
 
 	case AddressModeMR_R:
@@ -179,34 +174,28 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 			address |= 0xFF00
 		}
 		data = uint16(c.ctx.membus.Read(address))
-		c.ctx.EmuCycle(1)
 
 	case AddressModeA8_R:
 		destAddr = &CpuDestAddress{uint16(c.ctx.membus.Read(c.registers.PC)) | 0xFF00}
-		c.ctx.EmuCycle(1)
 		c.registers.PC++
 
 	case AddressModeMR:
 		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
 		data = uint16(c.ctx.membus.Read(c.readFromRegister(instruction.Register1)))
-		c.ctx.EmuCycle(1)
 
 	case AddressModeMR_N8:
 		destAddr = &CpuDestAddress{c.readFromRegister(instruction.Register1)}
 		data = uint16(c.ctx.membus.Read(c.registers.PC))
-		c.ctx.EmuCycle(1)
 		c.registers.PC++
 
 	case AddressModeR_HLI:
 		hl := c.readFromRegister(RegisterTypeHL)
 		data = uint16(c.ctx.membus.Read(hl))
-		c.ctx.EmuCycle(1)
 		c.writeToRegister(RegisterTypeHL, hl+1)
 
 	case AddressModeR_HLD:
 		hl := c.readFromRegister(RegisterTypeHL)
 		data = uint16(c.ctx.membus.Read(hl))
-		c.ctx.EmuCycle(1)
 		c.writeToRegister(RegisterTypeHL, hl-1)
 
 	case AddressModeHLI_R:
@@ -225,96 +214,92 @@ func (c *Cpu) fetchData(instruction CpuInstriction) (data uint16, destAddr *CpuD
 		destAddr = &CpuDestAddress{
 			c.ctx.membus.Read16(c.registers.PC),
 		}
-		c.ctx.EmuCycle(2)
 		c.registers.PC += 2
 		data = c.readFromRegister(instruction.Register2)
 
 	case AddressModeR_A16:
 		addr := c.ctx.membus.Read16(c.registers.PC)
-		c.ctx.EmuCycle(2)
 		c.registers.PC += 2
 		data = uint16(c.ctx.membus.Read(addr))
-		c.ctx.EmuCycle(1)
 	}
 
 	return data, destAddr
 }
 
-func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) error {
+func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	switch instruction.Type {
-	case InstructionTypeNone:
-		return errors.New("instruction not defined")
 	case InstructionTypeADC:
-		c.execADC(instruction, data)
+		return c.execADC(instruction, data)
 	case InstructionTypeADD:
-		c.execADD(instruction, data)
+		return c.execADD(instruction, data)
 	case InstructionTypeAND:
-		c.execAND(instruction, data)
+		return c.execAND(instruction, data)
 	case InstructionTypeCALL:
-		c.execCALL(instruction, data)
+		return c.execCALL(instruction, data)
 	case InstructionTypeCCF:
-		c.execCCF()
+		return c.execCCF()
 	case InstructionTypeCP:
-		c.execCP(instruction, data)
+		return c.execCP(instruction, data)
 	case InstructionTypeCPL:
-		c.execCPL()
+		return c.execCPL()
 	case InstructionTypeDAA:
-		c.execDAA()
+		return c.execDAA()
 	case InstructionTypeDEC:
-		c.execDEC(instruction, data, destAddress)
+		return c.execDEC(instruction, data, destAddress)
 	case InstructionTypeDI:
-		c.execDI()
+		return c.execDI()
 	case InstructionTypeEI:
-		c.execEI()
+		return c.execEI()
 	case InstructionTypeHALT:
-		c.execHALT()
+		return c.execHALT()
 	case InstructionTypeINC:
-		c.execINC(instruction, data, destAddress)
+		return c.execINC(instruction, data, destAddress)
 	case InstructionTypeJP:
-		c.execJP(instruction, data)
+		return c.execJP(instruction, data)
 	case InstructionTypeJR:
-		c.execJR(instruction, data)
+		return c.execJR(instruction, data)
 	case InstructionTypeLD:
-		c.execLD(instruction, data, destAddress)
+		return c.execLD(instruction, data, destAddress)
 	case InstructionTypeLDH:
-		c.execLDH(instruction, data, destAddress)
-	case InstructionTypeNOP:
-		return nil // NOOP
+		return c.execLDH(instruction, data, destAddress)
 	case InstructionTypeOR:
-		c.execOR(instruction, data)
+		return c.execOR(instruction, data)
 	case InstructionTypePOP:
-		c.execPOP(instruction)
+		return c.execPOP(instruction)
 	case InstructionTypePUSH:
-		c.execPUSH(instruction)
+		return c.execPUSH(instruction)
 	case InstructionTypeRET:
-		c.execRET(instruction)
+		return c.execRET(instruction)
 	case InstructionTypeRETI:
-		c.execRETI(instruction)
+		return c.execRETI(instruction)
 	case InstructionTypeRLA:
-		c.execRLA()
+		return c.execRLA()
 	case InstructionTypeRLCA:
-		c.execRLCA()
+		return c.execRLCA()
 	case InstructionTypeRRA:
-		c.execRRA()
+		return c.execRRA()
 	case InstructionTypeRRCA:
-		c.execRRCA()
+		return c.execRRCA()
 	case InstructionTypeRST:
-		c.execRST(instruction)
+		return c.execRST(instruction)
 	case InstructionTypeSBC:
-		c.execSBC(instruction, data)
+		return c.execSBC(instruction, data)
 	case InstructionTypeSCF:
-		c.execSCF()
+		return c.execSCF()
 	case InstructionTypeSTOP:
-		c.execSTOP(data)
+		return c.execSTOP(data)
 	case InstructionTypeSUB:
-		c.execSUB(instruction, data)
+		return c.execSUB(instruction, data)
 	case InstructionTypeXOR:
-		c.execXOR(data)
+		return c.execXOR(data)
 	case InstructionTypeCB:
-		c.execCB(instruction, data)
+		return c.execCB(instruction, data)
+	case InstructionTypeNOP:
+		return true
 
 	default:
-		return errors.New("instruction not implemented")
+		panic("instruction not implemented")
 	}
-	return nil
+
+	return false
 }

@@ -1,11 +1,11 @@
 package emu
 
-func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) {
+func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) bool {
 	c.ctx.EmuCycle(1)
 
 	if bitOp := uint8(cbyte >> 6 & 0x03); bitOp != 0 {
 		c.execCB_BitOp(bitOp, cbyte)
-		return
+		return true
 	}
 
 	opCode := uint8(cbyte >> 3 & 0x07)
@@ -56,6 +56,8 @@ func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) {
 	}
 
 	c.registers.SetFlags(zflag, 0, 0, cflag)
+
+	return true
 }
 
 func (c *Cpu) execCB_BitOp(bitOp uint8, cbyte uint16) {
