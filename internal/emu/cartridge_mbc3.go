@@ -26,7 +26,8 @@ type MBC3 struct {
 	rtcRegister uint8
 	mode        uint8
 
-	hasBattery bool
+	hasBattery    bool
+	hasRamChanges bool
 }
 
 func NewMBC3(path string, data []byte, header *CartHeader) (*MBC3, error) {
@@ -38,7 +39,9 @@ func NewMBC3(path string, data []byte, header *CartHeader) (*MBC3, error) {
 		ramData:        make([]byte, 0x2000*uint32(header.RamBanks())),
 		rtcData:        make([]byte, 5),
 		rtcLatchedData: make([]byte, 5),
-		hasBattery:     CartTypeMbc1RamBattery == header.CartType,
+		hasBattery: CartTypeMbc3RamBattery == header.CartType ||
+			CartTypeMbc3TimerBattery == header.CartType ||
+			CartTypeMbc3TimerRamBattery == header.CartType,
 	}
 
 	if err := m.Load(); err != nil {
@@ -109,10 +112,11 @@ func (m *MBC3) Write(address uint16, value byte) {
 		}
 
 	case address <= 0xC000:
-		// TODO
 		if m.ramBanks == 0 {
 			return
 		}
+
+		m.hasRamChanges = true
 
 		offset := uint32(m.ramBank) * 0x2000
 		m.ramData[offset+uint32(address-0xA000)] = value
@@ -130,6 +134,10 @@ func (m *MBC3) Load() error {
 		return err
 	}
 
+	if err != nil {
+		panic(err)
+	}
+
 	if data != nil {
 		m.rtcData = data[:5]
 		m.ramData = data[5:]
@@ -140,10 +148,11 @@ func (m *MBC3) Load() error {
 
 // Save implements MBC.
 func (m *MBC3) Save() error {
-	if !m.hasBattery {
+	if !m.hasBattery || !m.hasRamChanges {
 		return nil
 	}
 
+	m.hasRamChanges = false
 	return os.WriteFile(m.path+".gbsav", append(m.rtcData, m.ramData...), 0644)
 }
 
