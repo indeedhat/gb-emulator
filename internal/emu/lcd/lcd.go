@@ -1,38 +1,11 @@
-package emu
+package lcd
 
 import (
 	"fmt"
-)
 
-type Lcdc uint8
-
-const (
-	LcdcBgwEnable Lcdc = 1 << iota
-	LcdcObjecteEnable
-	LcdcObjecteDoubleHeight
-	LcdcBgTileArea
-	LcdcBgwTileArea
-	LcdcWindowEnable
-	LcdcWindowTileArea
-	LcdcLcdPpuEnable
-)
-
-type LcdStatus uint8
-
-const (
-	LcdStatusHblank LcdStatus = (1 << 3)
-	LcdStatusVblank LcdStatus = (1 << 4)
-	LcdStatusOam    LcdStatus = (1 << 5)
-	LcdStatusLyc    LcdStatus = (1 << 6)
-)
-
-type LcdMode uint8
-
-const (
-	LcdModeHblank LcdMode = iota
-	LcdModeVblank
-	LcdModeOam
-	LcdModeDraw
+	"github.com/indeedhat/gb-emulator/internal/emu/config"
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
 )
 
 type Lcd struct {
@@ -71,11 +44,11 @@ type Lcd struct {
 	objectPallet0    uint8
 	objectPallet1    uint8
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewLcd(ctx *Context) {
-	ctx.lcd = &Lcd{
+func New(ctx *context.Context) {
+	ctx.Lcd = &Lcd{
 		ctx:              ctx,
 		control:          0x91,
 		status:           uint8(LcdModeOam),
@@ -87,7 +60,7 @@ func NewLcd(ctx *Context) {
 
 func (l *Lcd) String(pc uint16) string {
 	return fmt.Sprintf("%08X - %04X: control(%d) ly(%d) lyc(%d) status(%d) scrollX(%d) scrollY(%d) windowX(%d) windowY(%d)",
-		l.ctx.ticks,
+		l.ctx.Ticks,
 		pc,
 		l.control,
 		l.ly,
@@ -186,11 +159,11 @@ func (l *Lcd) SetMode(mode LcdMode) {
 }
 
 func (l *Lcd) IncrementLine() {
-	if l.ctx.pix.WindowVisible() &&
+	if l.ctx.Pix.WindowVisible() &&
 		l.ly >= l.windowY &&
-		l.ly < l.windowY+PpuYRes {
+		l.ly < l.windowY+config.PpuYRes {
 
-		l.ctx.pix.IncrementWindowX()
+		l.ctx.Pix.IncrementWindowX()
 	}
 
 	l.ly++
@@ -202,7 +175,7 @@ func (l *Lcd) IncrementLine() {
 
 	l.status |= 0b100
 	if l.GetStatus(LcdStatusLyc) {
-		l.ctx.cpu.RequestInterrupt(InterruptLcdStat)
+		l.ctx.Cpu.RequestInterrupt(InterruptLcdStat)
 	}
 }
 
@@ -253,7 +226,7 @@ func (l *Lcd) Write(addr uint16, value uint8) {
 		l.lyCompare = value
 	case 0xFF46:
 		l.dma = value
-		l.ctx.dma.Start(value)
+		l.ctx.Dma.Start(value)
 	case 0xFF47:
 		l.backgroundPallet = value
 	case 0xFF48:

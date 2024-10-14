@@ -1,4 +1,4 @@
-package emu
+package cpu
 
 const (
 	CpuFlagZ uint8 = 1 << 7

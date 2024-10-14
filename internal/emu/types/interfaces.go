@@ -1,4 +1,4 @@
-package emu
+package types
 
 type ReadWriter interface {
 	Read(address uint16) uint8
@@ -26,4 +26,9 @@ type Cart interface {
 	SaveLoader
 
 	Mbc() MBC
+}
+
+type MBC interface {
+	ReadWriter
+	SaveLoader
 }

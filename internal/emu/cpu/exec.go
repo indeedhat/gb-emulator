@@ -1,4 +1,4 @@
-package emu
+package cpu
 
 func (c *Cpu) execJP(instruction CpuInstriction, data uint16) bool {
 	if !c.registers.CheckFlag(instruction.Condition) {
@@ -39,9 +39,9 @@ func (c *Cpu) execEI() bool {
 func (c *Cpu) execLD(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	if nil != destAddress {
 		if instruction.Register2.Is16bit() {
-			c.ctx.membus.Write16(destAddress.Address, data)
+			c.ctx.Bus.Write16(destAddress.Address, data)
 		} else {
-			c.ctx.membus.Write(destAddress.Address, uint8(data&0xFF))
+			c.ctx.Bus.Write(destAddress.Address, uint8(data&0xFF))
 		}
 
 		goto done
@@ -73,9 +73,9 @@ done:
 
 func (c *Cpu) execLDH(instruction CpuInstriction, data uint16, destAddress *CpuDestAddress) bool {
 	if instruction.Register1 == RegisterTypeA {
-		c.writeToRegister(RegisterTypeA, uint16(c.ctx.membus.Read(0xFF00|data)))
+		c.writeToRegister(RegisterTypeA, uint16(c.ctx.Bus.Read(0xFF00|data)))
 	} else {
-		c.ctx.membus.Write(destAddress.Address, c.registers.A)
+		c.ctx.Bus.Write(destAddress.Address, c.registers.A)
 	}
 
 	return true
@@ -94,7 +94,7 @@ func (c *Cpu) execINC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	hflag := halfCarry(data-1, 1, data)
 
 	if nil != destAddress {
-		c.ctx.membus.Write(destAddress.Address, uint8(data))
+		c.ctx.Bus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
 	}
@@ -119,7 +119,7 @@ func (c *Cpu) execDEC(instruction CpuInstriction, data uint16, destAddress *CpuD
 	hflag := halfCarry(data+1, 1, data)
 
 	if nil != destAddress {
-		c.ctx.membus.Write(destAddress.Address, uint8(data))
+		c.ctx.Bus.Write(destAddress.Address, uint8(data))
 	} else {
 		c.writeToRegister(instruction.Register1, data)
 	}

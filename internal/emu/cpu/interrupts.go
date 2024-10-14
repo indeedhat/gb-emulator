@@ -1,12 +1,6 @@
-package emu
+package cpu
 
-const (
-	InterruptVBlank uint8 = 1 << iota
-	InterruptLcdStat
-	InterruptTimer
-	InterruptSerial
-	InterruptJoyPad
-)
+import . "github.com/indeedhat/gb-emulator/internal/emu/enum"
 
 func (c *Cpu) RequestInterrupt(itype uint8) {
 	c.interruptFlags |= itype

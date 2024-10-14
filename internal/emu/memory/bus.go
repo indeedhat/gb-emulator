@@ -1,7 +1,10 @@
-package emu
+package memory
 
 import (
 	"log"
+
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
 // 0x0000 - 0x3FFF:   16 KiB ROM bank 00              From cartridge, usually a fixed bank
@@ -21,32 +24,26 @@ type MemoryBus struct {
 	hram *RamBank
 	wram *RamBank
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewMemoryBus(ctx *Context) {
-	ctx.membus = &MemoryBus{
-		hram: &RamBank{
-			offset: 0xFF80,
-			data:   make([]byte, 0x80),
-		},
-		wram: &RamBank{
-			offset: 0xC000,
-			data:   make([]byte, 0x2000),
-		},
-		ctx: ctx,
+func NewBus(ctx *context.Context) {
+	ctx.Bus = &MemoryBus{
+		hram: NewRamBank(0xFF80, 0x80),
+		wram: NewRamBank(0xC000, 0x2000),
+		ctx:  ctx,
 	}
 }
 
 func (b *MemoryBus) Read(address uint16) uint8 {
 	switch true {
 	case address < 0x8000:
-		return b.ctx.cart.Read(address)
+		return b.ctx.Cart.Read(address)
 	case address < 0xA000:
-		return b.ctx.ppu.Read(address)
+		return b.ctx.Ppu.Read(address)
 	case address < 0xC000:
 		// cart ram
-		return b.ctx.cart.Read(address)
+		return b.ctx.Cart.Read(address)
 	case address < 0xE000:
 		// working ram
 		return b.wram.Read(address)
@@ -54,11 +51,11 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		// Echo ram is unusable
 		return 0
 	case address < 0xFEA0:
-		if b.ctx.dma.Active() {
+		if b.ctx.Dma.Active() {
 			return 0xFF
 		}
 
-		value := b.ctx.ppu.Read(address)
+		value := b.ctx.Ppu.Read(address)
 		// if address == 0xFE40 {
 		// 	log.Fatalf("r %d,%d", address, value)
 		// }
@@ -68,13 +65,13 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		return 0
 	case address < 0xFF80:
 		// IO registers
-		return b.ctx.io.Read(address)
+		return b.ctx.Io.Read(address)
 	case address < 0xFFFF:
 		// high ram/zero page
 		return b.hram.Read(address)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		return b.ctx.cpu.InterruptRegister()
+		return b.ctx.Cpu.InterruptRegister()
 	default:
 		// log.Printf("unsupported mem.read 0x%X", address)
 	}
@@ -88,36 +85,36 @@ func (b *MemoryBus) Read16(address uint16) uint16 {
 func (b *MemoryBus) Write(address uint16, value uint8) {
 	switch true {
 	case address < 0x8000:
-		b.ctx.cart.Write(address, value)
+		b.ctx.Cart.Write(address, value)
 	case address < 0xA000:
-		b.ctx.ppu.Write(address, value)
+		b.ctx.Ppu.Write(address, value)
 	case address < 0xC000:
 		// cart ram
-		b.ctx.cart.Write(address, value)
+		b.ctx.Cart.Write(address, value)
 	case address < 0xE000:
 		// working ram
 		b.wram.Write(address, value)
 	case address < 0xFE00:
 		// Echo ram is unusable
 	case address < 0xFEA0:
-		if b.ctx.dma.Active() {
+		if b.ctx.Dma.Active() {
 			return
 		}
 		if address == 0xFE40 {
 			log.Printf("w %d,%d", address, value)
 		}
-		b.ctx.ppu.Write(address, value)
+		b.ctx.Ppu.Write(address, value)
 	case address < 0xFF00:
 		// reserved and unusable
 	case address < 0xFF80:
 		// IO registers
-		b.ctx.io.Write(address, value)
+		b.ctx.Io.Write(address, value)
 	case address < 0xFFFF:
 		// high ram/zero page
 		b.hram.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		b.ctx.cpu.SetInterruptRegister(value)
+		b.ctx.Cpu.SetInterruptRegister(value)
 	default:
 		// log.Printf("unsupported mem.write 0x%X", address)
 	}
@@ -126,18 +123,4 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 func (b *MemoryBus) Write16(address uint16, value uint16) {
 	b.Write(address, uint8(value&0xFF))
 	b.Write(address+1, uint8(value>>8))
-}
-
-type RamBank struct {
-	offset uint16
-	data   []byte
-}
-
-func (r *RamBank) Read(address uint16) uint8 {
-	return r.data[address-r.offset]
-
-}
-
-func (r *RamBank) Write(address uint16, value uint8) {
-	r.data[address-r.offset] = value
 }

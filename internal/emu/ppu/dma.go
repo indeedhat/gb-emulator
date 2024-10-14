@@ -1,4 +1,6 @@
-package emu
+package ppu
+
+import "github.com/indeedhat/gb-emulator/internal/emu/context"
 
 type Dma struct {
 	active bool
@@ -7,11 +9,11 @@ type Dma struct {
 	byteIdx    uint8
 	addr       uint16
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewDma(ctx *Context) {
-	ctx.dma = &Dma{
+func NewDma(ctx *context.Context) {
+	ctx.Dma = &Dma{
 		ctx: ctx,
 	}
 }
@@ -37,9 +39,9 @@ func (d *Dma) Tick() {
 		return
 	}
 
-	d.ctx.ppu.Write(
+	d.ctx.Ppu.Write(
 		uint16(d.byteIdx)+0xFE00,
-		d.ctx.membus.Read((d.addr*0x100)+uint16(d.byteIdx)),
+		d.ctx.Bus.Read((d.addr*0x100)+uint16(d.byteIdx)),
 	)
 
 	d.byteIdx++

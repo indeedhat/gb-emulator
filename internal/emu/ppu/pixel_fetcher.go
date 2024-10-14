@@ -1,4 +1,12 @@
-package emu
+package ppu
+
+import (
+	"github.com/indeedhat/gb-emulator/internal/emu/config"
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
+	"github.com/indeedhat/gb-emulator/internal/emu/palette"
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
+)
 
 type PixFetchMode uint8
 
@@ -38,11 +46,11 @@ type PixelFetcher struct {
 
 	pixFifo *PixelFifo
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewPixelFetcher(ctx *Context) {
-	ctx.pix = &PixelFetcher{
+func NewPixelFetcher(ctx *context.Context) {
+	ctx.Pix = &PixelFetcher{
 		ctx: ctx,
 
 		pixFifo: &PixelFifo{pixels: make([]Pixel, 16)},
@@ -59,11 +67,11 @@ func (p *PixelFetcher) Reset() {
 }
 
 func (p *PixelFetcher) Process() {
-	p.mapX = p.fetched + p.ctx.lcd.ScrollX()
-	p.mapY = p.ctx.lcd.Ly() + p.ctx.lcd.ScrollY()
+	p.mapX = p.fetched + p.ctx.Lcd.ScrollX()
+	p.mapY = p.ctx.Lcd.Ly() + p.ctx.Lcd.ScrollY()
 	p.tileY = (p.mapY % 8) * 2
 
-	if p.ctx.ppu.(*Ppu).ticks%2 == 0 {
+	if p.ctx.Ppu.(*Ppu).ticks%2 == 0 {
 		p.fetch()
 	}
 
@@ -77,15 +85,15 @@ func (p *PixelFetcher) fetch() {
 
 	case PixFetchModeDataHigh:
 		p.mode = PixFetchModeDataLow
-		p.bgHiBit = p.ctx.membus.Read(
-			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY) + 1),
+		p.bgHiBit = p.ctx.Bus.Read(
+			p.ctx.Lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY) + 1),
 		)
 		p.loadSpriteTileData(true)
 
 	case PixFetchModeDataLow:
 		p.mode = PixFetchModeSleep
-		p.bgLoBit = p.ctx.membus.Read(
-			p.ctx.lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY)),
+		p.bgLoBit = p.ctx.Bus.Read(
+			p.ctx.Lcd.BgWinTileAddress(uint16(p.bgTileId)*16 + uint16(p.tileY)),
 		)
 		p.loadSpriteTileData(false)
 
@@ -101,29 +109,29 @@ func (p *PixelFetcher) fetch() {
 func (p *PixelFetcher) doFetchModeTile() {
 	p.fetchedOam = nil
 
-	if p.ctx.lcd.GetControl(LcdcBgwEnable) {
+	if p.ctx.Lcd.GetControl(LcdcBgwEnable) {
 		if p.WindowVisible() &&
-			(p.fetched+7 >= p.ctx.lcd.WindowX() && p.fetched+7 < p.ctx.lcd.WindowX()+PpuYRes+14) &&
-			(p.ctx.lcd.Ly() >= p.ctx.lcd.WindowY() && p.ctx.lcd.Ly() < p.ctx.lcd.WindowY()+PpuXRes) {
+			(p.fetched+7 >= p.ctx.Lcd.WindowX() && p.fetched+7 < p.ctx.Lcd.WindowX()+config.PpuYRes+14) &&
+			(p.ctx.Lcd.Ly() >= p.ctx.Lcd.WindowY() && p.ctx.Lcd.Ly() < p.ctx.Lcd.WindowY()+config.PpuXRes) {
 
-			p.bgTileId = p.ctx.membus.Read(p.ctx.lcd.WinTileAddress(
-				(uint16(p.fetched+7-p.ctx.lcd.WindowX()) / 8) +
+			p.bgTileId = p.ctx.Bus.Read(p.ctx.Lcd.WinTileAddress(
+				(uint16(p.fetched+7-p.ctx.Lcd.WindowX()) / 8) +
 					(uint16(p.windowX)/8)*32,
 			))
 		} else {
-			p.bgTileId = p.ctx.membus.Read(
-				p.ctx.lcd.BgTileAddress(uint16(p.mapX/8) + uint16(p.mapY/8)*32),
+			p.bgTileId = p.ctx.Bus.Read(
+				p.ctx.Lcd.BgTileAddress(uint16(p.mapX/8) + uint16(p.mapY/8)*32),
 			)
 		}
 
-		if !p.ctx.lcd.GetControl(LcdcBgwTileArea) {
+		if !p.ctx.Lcd.GetControl(LcdcBgwTileArea) {
 			p.bgTileId += 128
 		}
 	}
 
-	if p.ctx.lcd.GetControl(LcdcObjecteEnable) && len(p.ctx.ppu.(*Ppu).activeSprites) > 0 {
-		for _, entry := range p.ctx.ppu.(*Ppu).activeSprites {
-			x := (entry.x - 8) + p.ctx.lcd.ScrollX()%8
+	if p.ctx.Lcd.GetControl(LcdcObjecteEnable) && len(p.ctx.Ppu.(*Ppu).activeSprites) > 0 {
+		for _, entry := range p.ctx.Ppu.(*Ppu).activeSprites {
+			x := (entry.x - 8) + p.ctx.Lcd.ScrollX()%8
 
 			if (x >= p.fetched && x < p.fetched+8) ||
 				(x+8 >= p.fetched && x+8 < p.fetched+8) {
@@ -146,25 +154,25 @@ func (p *PixelFetcher) doFetchModeTile() {
 
 func (p *PixelFetcher) loadSpriteTileData(hi bool) {
 	var height uint8 = 8
-	if p.ctx.lcd.GetControl(LcdcObjecteDoubleHeight) {
+	if p.ctx.Lcd.GetControl(LcdcObjecteDoubleHeight) {
 		height = 16
 	}
 
 	for i, entry := range p.fetchedOam {
-		y := (p.ctx.lcd.Ly() + 16 - entry.y) * 2
+		y := (p.ctx.Lcd.Ly() + 16 - entry.y) * 2
 		if entry.Check(OamFlagYflip) {
 			y = height*2 - 2 - y
 		}
 
 		tileId := entry.tileIdx
-		if p.ctx.lcd.GetControl(LcdcObjecteDoubleHeight) {
+		if p.ctx.Lcd.GetControl(LcdcObjecteDoubleHeight) {
 			tileId &= 0xFE
 		}
 
 		if hi {
-			p.spriteHiBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y) + 1)
+			p.spriteHiBit[i] = p.ctx.Bus.Read(0x8000 + uint16(tileId)*16 + uint16(y) + 1)
 		} else {
-			p.spriteLoBit[i] = p.ctx.membus.Read(0x8000 + uint16(tileId)*16 + uint16(y))
+			p.spriteLoBit[i] = p.ctx.Bus.Read(0x8000 + uint16(tileId)*16 + uint16(y))
 		}
 	}
 }
@@ -175,17 +183,17 @@ func (p *PixelFetcher) fetchPixels() {
 	}
 
 	p.mode = PixFetchModeTile
-	xPos := p.fetched - (8 - (p.ctx.lcd.ScrollX() % 8))
+	xPos := p.fetched - (8 - (p.ctx.Lcd.ScrollX() % 8))
 
 	for i := 7; i >= 0; i-- {
-		cid := getColorIdx(p.bgHiBit, p.bgLoBit, uint8(i))
-		c := getColor(p.ctx.lcd.BackgroundPallet(), p.bgHiBit, p.bgLoBit, uint8(i))
+		cid := palette.GetColorIdx(p.bgHiBit, p.bgLoBit, uint8(i))
+		c := palette.GetColor(p.ctx.Lcd.BackgroundPallet(), p.bgHiBit, p.bgLoBit, uint8(i))
 
-		if !p.ctx.lcd.GetControl(LcdcBgwEnable) {
-			c = ColorPallet[p.ctx.lcd.BackgroundPallet()&0b11]
+		if !p.ctx.Lcd.GetControl(LcdcBgwEnable) {
+			c = palette.ColorPallet[p.ctx.Lcd.BackgroundPallet()&0b11]
 		}
 
-		if p.ctx.lcd.GetControl(LcdcObjecteEnable) {
+		if p.ctx.Lcd.GetControl(LcdcObjecteEnable) {
 			if sp := p.fetchSpritePixel(cid); sp != nil {
 				c = *sp
 			}
@@ -200,7 +208,7 @@ func (p *PixelFetcher) fetchPixels() {
 
 func (p *PixelFetcher) fetchSpritePixel(bgColorId int) *Pixel {
 	for i, entry := range p.fetchedOam {
-		x := (entry.x - 8) + p.ctx.lcd.ScrollX()%8
+		x := (entry.x - 8) + p.ctx.Lcd.ScrollX()%8
 		if x+8 < p.fifoX {
 			continue
 		}
@@ -218,7 +226,7 @@ func (p *PixelFetcher) fetchSpritePixel(bgColorId int) *Pixel {
 		hiBit := p.spriteHiBit[i]
 		loBit := p.spriteLoBit[i]
 
-		if getColorIdx(hiBit, loBit, bit) == 0 {
+		if palette.GetColorIdx(hiBit, loBit, bit) == 0 {
 			continue
 		}
 
@@ -226,12 +234,12 @@ func (p *PixelFetcher) fetchSpritePixel(bgColorId int) *Pixel {
 			continue
 		}
 
-		palette := p.ctx.lcd.ObjectPallet(0)
+		activePalette := p.ctx.Lcd.ObjectPallet(0)
 		if entry.Check(OamFlagDmgPalette) {
-			palette = p.ctx.lcd.ObjectPallet(1)
+			activePalette = p.ctx.Lcd.ObjectPallet(1)
 		}
 
-		pix := getColor(palette, hiBit, loBit, bit)
+		pix := palette.GetColor(activePalette, hiBit, loBit, bit)
 		return &pix
 	}
 
@@ -248,10 +256,10 @@ func (p *PixelFetcher) pushPixel() {
 		panic("failed to get pixel data")
 	}
 
-	if p.lineX >= (p.ctx.lcd.ScrollX() % 8) {
-		i := uint16(p.pushed) + (uint16(p.ctx.lcd.Ly()) * PpuXRes)
+	if p.lineX >= (p.ctx.Lcd.ScrollX() % 8) {
+		i := uint16(p.pushed) + (uint16(p.ctx.Lcd.Ly()) * config.PpuXRes)
 
-		p.ctx.ppu.(*Ppu).nextFrame[i] = pix
+		p.ctx.Ppu.(*Ppu).nextFrame[i] = pix
 		p.pushed++
 	}
 
@@ -259,12 +267,12 @@ func (p *PixelFetcher) pushPixel() {
 }
 
 func (p *PixelFetcher) WindowVisible() bool {
-	if !p.ctx.lcd.GetControl(LcdcWindowEnable) {
+	if !p.ctx.Lcd.GetControl(LcdcWindowEnable) {
 		return false
 	}
 
-	return p.ctx.lcd.WindowX() >= 0 && p.ctx.lcd.WindowX() <= 166 &&
-		p.ctx.lcd.WindowY() >= 0 && p.ctx.lcd.WindowY() < PpuYRes
+	return p.ctx.Lcd.WindowX() >= 0 && p.ctx.Lcd.WindowX() <= 166 &&
+		p.ctx.Lcd.WindowY() >= 0 && p.ctx.Lcd.WindowY() < config.PpuYRes
 }
 
 func (p *PixelFetcher) IncrementWindowX() {

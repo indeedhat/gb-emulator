@@ -7,10 +7,14 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
-	"github.com/indeedhat/gb-emulator/internal/emu"
+
+	"github.com/indeedhat/gb-emulator/internal/emu/config"
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	"github.com/indeedhat/gb-emulator/internal/emu/enum"
+	"github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
-func NewFyneRenderer(ctx *emu.Context) (fyne.App, fyne.Window) {
+func NewFyneRenderer(ctx *context.Context) (fyne.App, fyne.Window) {
 	a := app.New()
 
 	w := a.NewWindow("Emulator")
@@ -21,22 +25,22 @@ func NewFyneRenderer(ctx *emu.Context) (fyne.App, fyne.Window) {
 	dc := c.(desktop.Canvas)
 	dc.SetOnKeyDown(func(e *fyne.KeyEvent) {
 		code := mapKeyCode(e)
-		if code == emu.KeyUnknown {
+		if code == enum.KeyUnknown {
 			return
 		}
 
-		ctx.JoypadCh <- emu.KeyEvent{
+		ctx.JoypadCh <- types.KeyEvent{
 			Key:  code,
 			Down: true,
 		}
 	})
 	dc.SetOnKeyUp(func(e *fyne.KeyEvent) {
 		code := mapKeyCode(e)
-		if code == emu.KeyUnknown {
+		if code == enum.KeyUnknown {
 			return
 		}
 
-		ctx.JoypadCh <- emu.KeyEvent{
+		ctx.JoypadCh <- types.KeyEvent{
 			Key:  code,
 			Down: false,
 		}
@@ -53,8 +57,8 @@ func NewFyneRenderer(ctx *emu.Context) (fyne.App, fyne.Window) {
 	return a, w
 }
 
-func generateImage(data []emu.Pixel) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, emu.PpuXRes, emu.PpuYRes))
+func generateImage(data []types.Pixel) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, config.PpuXRes, config.PpuYRes))
 
 	for i, px := range data {
 		img.Pix[i*4] = px.R
@@ -66,25 +70,25 @@ func generateImage(data []emu.Pixel) *image.RGBA {
 	return img
 }
 
-func mapKeyCode(e *fyne.KeyEvent) emu.KeyCode {
+func mapKeyCode(e *fyne.KeyEvent) enum.KeyCode {
 	switch e.Name {
 	case fyne.KeyComma:
-		return emu.KeyUp
+		return enum.KeyUp
 	case fyne.KeyE:
-		return emu.KeyRight
+		return enum.KeyRight
 	case fyne.KeyO:
-		return emu.KeyDown
+		return enum.KeyDown
 	case fyne.KeyA:
-		return emu.KeyLeft
+		return enum.KeyLeft
 	case fyne.KeyEnter, fyne.KeyReturn:
-		return emu.KeyA
+		return enum.KeyA
 	case fyne.KeyJ:
-		return emu.KeyB
+		return enum.KeyB
 	case fyne.KeyPeriod:
-		return emu.KeyStart
+		return enum.KeyStart
 	case fyne.KeyApostrophe:
-		return emu.KeySelect
+		return enum.KeySelect
 	}
 
-	return emu.KeyUnknown
+	return enum.KeyUnknown
 }

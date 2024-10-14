@@ -1,4 +1,4 @@
-package emu
+package cpu
 
 func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) bool {
 	c.ctx.EmuCycle(1)
@@ -46,7 +46,7 @@ func (c *Cpu) execCB(_ CpuInstriction, cbyte uint16) bool {
 	}
 
 	if reg == RegisterTypeHL {
-		c.ctx.membus.Write(c.readFromRegister(RegisterTypeHL), final)
+		c.ctx.Bus.Write(c.readFromRegister(RegisterTypeHL), final)
 	} else {
 		c.writeToRegister(reg, uint16(final))
 	}
@@ -113,7 +113,7 @@ func (c *Cpu) cbReadRegister(reg RegisterType) uint8 {
 	case RegisterTypeL:
 		return c.registers.L
 	case RegisterTypeHL:
-		return c.ctx.membus.Read(c.readFromRegister(RegisterTypeHL))
+		return c.ctx.Bus.Read(c.readFromRegister(RegisterTypeHL))
 	default:
 		return 0
 	}
@@ -136,6 +136,6 @@ func (c *Cpu) cbWriteRegister(reg RegisterType, val uint8) {
 	case RegisterTypeL:
 		c.registers.L = val
 	case RegisterTypeHL:
-		c.ctx.membus.Write(c.readFromRegister(RegisterTypeHL), val)
+		c.ctx.Bus.Write(c.readFromRegister(RegisterTypeHL), val)
 	}
 }

@@ -1,4 +1,4 @@
-package emu
+package cart
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/davecgh/go-spew/spew"
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
 type Cartridge struct {
@@ -14,7 +15,7 @@ type Cartridge struct {
 	header *CartHeader
 }
 
-func LoadCartridge(path string) (*Cartridge, error) {
+func Load(path string) (*Cartridge, error) {
 	fh, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -78,11 +79,6 @@ func (c *Cartridge) initMbc(path string, data []byte) {
 		spew.Dump(c.header)
 		panic("mbc type not implemented")
 	}
-}
-
-type MBC interface {
-	ReadWriter
-	SaveLoader
 }
 
 type MBCNone []byte
@@ -202,8 +198,6 @@ func (h *CartHeader) RamBanks() uint16 {
 	}
 	return 0
 }
-
-type CartType uint8
 
 const (
 	CartTypeRomOnly                    = 0x00

@@ -1,16 +1,21 @@
-package emu
+package context
+
+import (
+	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
+)
 
 type Context struct {
-	ticks uint64
+	Ticks uint64
 
-	cart interface {
+	Cart interface {
 		ReadWriter
 		SaveLoader
 
 		Mbc() MBC
 	}
 
-	cpu interface {
+	Cpu interface {
 		RequestInterrupt(itype uint8)
 		Step() error
 		InterruptFlags() uint8
@@ -18,19 +23,19 @@ type Context struct {
 		InterruptRegister() uint8
 		SetInterruptRegister(value uint8)
 	}
-	debug interface {
+	Debug interface {
 		Update()
 		Print()
 		Enabled() bool
 	}
-	dma interface {
+	Dma interface {
 		Ticker
 
 		Active() bool
 		Start(value uint8)
 	}
-	jpad ReadWriter
-	lcd  interface {
+	Jpad ReadWriter
+	Lcd  interface {
 		ReadWriter
 
 		GetMode() LcdMode
@@ -52,20 +57,20 @@ type Context struct {
 		BackgroundPallet() uint8
 		ObjectPallet(i uint8) uint8
 	}
-	membus ReadWriter16
-	pix    interface {
+	Bus ReadWriter16
+	Pix interface {
 		WindowVisible() bool
 		IncrementWindowX()
 	}
-	ppu interface {
+	Ppu interface {
 		ReadWriter
 		Ticker
 	}
-	timer interface {
+	Timer interface {
 		ReadWriter
 		Ticker
 	}
-	io ReadWriter
+	Io ReadWriter
 
 	FrameCh  chan []Pixel
 	JoypadCh chan KeyEvent
@@ -81,11 +86,11 @@ func NewContext() *Context {
 func (c *Context) EmuCycle(i uint8) {
 	for range i {
 		for range 4 {
-			c.ticks++
-			c.timer.Tick()
-			c.ppu.Tick()
+			c.Ticks++
+			c.Timer.Tick()
+			c.Ppu.Tick()
 		}
 
-		c.dma.Tick()
+		c.Dma.Tick()
 	}
 }

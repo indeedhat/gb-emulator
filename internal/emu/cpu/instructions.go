@@ -1,4 +1,4 @@
-package emu
+package cpu
 
 // https://gbdev.io/gb-opcodes/optables/
 

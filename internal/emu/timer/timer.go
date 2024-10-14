@@ -1,4 +1,9 @@
-package emu
+package timer
+
+import (
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
+)
 
 type Timer struct {
 	div  uint16
@@ -6,11 +11,11 @@ type Timer struct {
 	tma  uint8
 	tac  uint8
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewTimer(ctx *Context) {
-	ctx.timer = &Timer{
+func New(ctx *context.Context) {
+	ctx.Timer = &Timer{
 		div: 0xABCC,
 		ctx: ctx,
 	}
@@ -45,7 +50,7 @@ func (t *Timer) Tick() {
 		if t.tima == 0xFF {
 			t.tima = t.tma
 
-			t.ctx.cpu.RequestInterrupt(InterruptTimer)
+			t.ctx.Cpu.RequestInterrupt(InterruptTimer)
 		}
 	}
 }

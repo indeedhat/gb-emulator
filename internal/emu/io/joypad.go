@@ -1,4 +1,10 @@
-package emu
+package io
+
+import (
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
+)
 
 const (
 	JpadModeActions = uint8(1) << 5
@@ -19,25 +25,6 @@ const (
 	JpadActionA      = uint8(1)
 )
 
-type KeyCode uint8
-
-const (
-	KeyA KeyCode = iota
-	KeyB
-	KeySelect
-	KeyStart
-	KeyUp
-	KeyRight
-	KeyDown
-	KeyLeft
-	KeyUnknown
-)
-
-type KeyEvent struct {
-	Key  KeyCode
-	Down bool
-}
-
 type Joypad struct {
 	// data mode registers
 	ModeDpad    bool
@@ -55,10 +42,10 @@ type Joypad struct {
 	Start  bool
 	Select bool
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewJoypad(ctx *Context) ReadWriter {
+func NewJoypad(ctx *context.Context) ReadWriter {
 	jpad := &Joypad{ctx: ctx}
 
 	go func() {
@@ -84,8 +71,8 @@ func NewJoypad(ctx *Context) ReadWriter {
 		}
 	}()
 
-	ctx.jpad = jpad
-	return ctx.jpad
+	ctx.Jpad = jpad
+	return ctx.Jpad
 }
 
 func (j *Joypad) Read(_ uint16) uint8 {

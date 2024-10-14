@@ -1,19 +1,21 @@
-package emu
+package debug
 
 import (
 	"bytes"
 	"log"
+
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
 )
 
 type Debug struct {
 	enabled bool
 	buf     *bytes.Buffer
 
-	ctx *Context
+	ctx *context.Context
 }
 
-func NewDebug(ctx *Context, enabled bool) {
-	ctx.debug = &Debug{
+func New(ctx *context.Context, enabled bool) {
+	ctx.Debug = &Debug{
 		buf:     new(bytes.Buffer),
 		ctx:     ctx,
 		enabled: enabled,
@@ -21,12 +23,12 @@ func NewDebug(ctx *Context, enabled bool) {
 }
 
 func (d *Debug) Update() {
-	if d.ctx.membus.Read(0xFF02) != 0x81 || !d.enabled {
+	if d.ctx.Bus.Read(0xFF02) != 0x81 || !d.enabled {
 		return
 	}
 
-	d.buf.WriteByte(d.ctx.membus.Read(0xFF01))
-	d.ctx.membus.Write(0xFF02, 0x00)
+	d.buf.WriteByte(d.ctx.Bus.Read(0xFF01))
+	d.ctx.Bus.Write(0xFF02, 0x00)
 }
 
 func (d *Debug) Print() {

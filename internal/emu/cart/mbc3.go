@@ -1,10 +1,12 @@
-package emu
+package cart
 
 import (
 	"errors"
 	"io/fs"
 	"log"
 	"os"
+
+	. "github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
 type MBC3 struct {
