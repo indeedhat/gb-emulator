@@ -8,8 +8,24 @@ const (
 	InterruptJoyPad
 )
 
-func (c *Cpu) requestInterrupt(itype uint8) {
+func (c *Cpu) RequestInterrupt(itype uint8) {
 	c.interruptFlags |= itype
+}
+
+func (c *Cpu) InterruptFlags() uint8 {
+	return c.interruptFlags
+}
+
+func (c *Cpu) SetInterruptFlags(value uint8) {
+	c.interruptFlags = value
+}
+
+func (c *Cpu) InterruptRegister() uint8 {
+	return c.interruptRegister
+}
+
+func (c *Cpu) SetInterruptRegister(value uint8) {
+	c.interruptRegister = value
 }
 
 func (c *Cpu) handleInterrupts() {

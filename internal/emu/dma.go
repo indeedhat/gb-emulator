@@ -1,7 +1,7 @@
 package emu
 
 type Dma struct {
-	Active bool
+	active bool
 
 	startDelay uint8
 	byteIdx    uint8
@@ -16,15 +16,19 @@ func NewDma(ctx *Context) {
 	}
 }
 
+func (d *Dma) Active() bool {
+	return d.active
+}
+
 func (d *Dma) Start(value uint8) {
-	d.Active = true
+	d.active = true
 	d.byteIdx = 0
 	d.startDelay = 2
 	d.addr = uint16(value)
 }
 
 func (d *Dma) Tick() {
-	if !d.Active {
+	if !d.active {
 		return
 	}
 
@@ -33,11 +37,11 @@ func (d *Dma) Tick() {
 		return
 	}
 
-	d.ctx.ppu.oam.Write(
-		uint16(d.byteIdx),
+	d.ctx.ppu.Write(
+		uint16(d.byteIdx)+0xFE00,
 		d.ctx.membus.Read((d.addr*0x100)+uint16(d.byteIdx)),
 	)
 
 	d.byteIdx++
-	d.Active = d.byteIdx < 0xA0
+	d.active = d.byteIdx < 0xA0
 }

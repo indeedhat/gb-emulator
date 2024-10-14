@@ -79,9 +79,9 @@ func (m *MBC1) Write(address uint16, value byte) {
 		}
 
 	case address < 0x4000:
-		address &= 0b11111
-		if address&0b11111 == 0x0 {
-			address |= 0x1
+		value &= 0b11111
+		if value&0b11111 == 0x0 {
+			value |= 0x1
 		}
 
 		m.romBank = value

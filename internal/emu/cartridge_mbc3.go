@@ -3,6 +3,7 @@ package emu
 import (
 	"errors"
 	"io/fs"
+	"log"
 	"os"
 )
 
@@ -84,12 +85,10 @@ func (m *MBC3) Read(address uint16) byte {
 func (m *MBC3) Write(address uint16, value byte) {
 	switch true {
 	case address < 0x2000:
-		m.ramRtcEnabled = value == 0x0A
-		if m.ramBanks > 0 {
-		}
+		m.ramRtcEnabled = value&0x0A == 0x0A
 
 	case address < 0x4000:
-		address &= 0b01111111
+		value &= 0b01111111
 		m.romBank = value
 
 	case address <= 0x6000:
@@ -99,6 +98,7 @@ func (m *MBC3) Write(address uint16, value byte) {
 
 		if value <= 0x3 {
 			m.ramBank = value
+			log.Printf("\n ------------------------\nchange ram bank %d", value)
 		} else if value >= 0x8 && value <= 0xC {
 			m.rtcRegister = value - 0x8
 		}
@@ -120,6 +120,7 @@ func (m *MBC3) Write(address uint16, value byte) {
 
 		offset := uint32(m.ramBank) * 0x2000
 		m.ramData[offset+uint32(address-0xA000)] = value
+		log.Printf("%04X(%d) = %d", offset+uint32(address-0xA000), m.ramBank, value)
 	}
 }
 
@@ -156,7 +157,7 @@ func (m *MBC3) Save() error {
 	return os.WriteFile(m.path+".gbsav", append(m.rtcData, m.ramData...), 0644)
 }
 
-func (m *MBC3) RtcTick() {
+func (m *MBC3) Tick() {
 	m.rtcData[0]++
 	if m.rtcData[0] >= 60 {
 		m.rtcData[0] = 0

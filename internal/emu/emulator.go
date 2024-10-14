@@ -25,7 +25,7 @@ func NewEmulator(romPath string, debug bool) (*Emulator, *Context, error) {
 
 	NewMemoryBus(e.ctx)
 	NewCpu(e.ctx)
-	NewDebug(e.ctx)
+	NewDebug(e.ctx, debug)
 	NewTimer(e.ctx)
 	NewIO(e.ctx)
 	NewPixelFetcher(e.ctx)
@@ -33,8 +33,6 @@ func NewEmulator(romPath string, debug bool) (*Emulator, *Context, error) {
 	NewJoypad(e.ctx)
 	NewLcd(e.ctx)
 	NewDma(e.ctx)
-
-	e.ctx.debug.enbled = debug
 
 	return e, e.ctx, nil
 }
@@ -59,11 +57,11 @@ func (e *Emulator) Run() error {
 func (e *Emulator) saveBatteryRam() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
-		if mbc3, ok := e.ctx.cart.Data.(*MBC3); ok {
-			mbc3.RtcTick()
+		if mbc3, ok := e.ctx.cart.Mbc().(Ticker); ok {
+			mbc3.Tick()
 		}
 
-		if err := e.ctx.cart.Data.Save(); err != nil {
+		if err := e.ctx.cart.Save(); err != nil {
 			log.Printf("failed to save battery backed ram: %s", err)
 		}
 	}

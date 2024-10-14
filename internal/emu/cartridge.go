@@ -10,8 +10,8 @@ import (
 )
 
 type Cartridge struct {
-	Data   MBC
-	Header *CartHeader
+	data   MBC
+	header *CartHeader
 }
 
 func LoadCartridge(path string) (*Cartridge, error) {
@@ -20,8 +20,8 @@ func LoadCartridge(path string) (*Cartridge, error) {
 		return nil, err
 	}
 
-	c := Cartridge{
-		Header: &CartHeader{},
+	c := &Cartridge{
+		header: &CartHeader{},
 	}
 
 	data, err := io.ReadAll(fh)
@@ -29,50 +29,60 @@ func LoadCartridge(path string) (*Cartridge, error) {
 		return nil, err
 	}
 
-	if err = c.Header.Parse(data); err != nil {
+	if err = c.header.Parse(data); err != nil {
 		return nil, err
 	}
 
 	c.initMbc(path, data)
 
-	return &c, nil
+	return c, nil
 }
 
 func (c *Cartridge) Read(address uint16) byte {
-	return c.Data.Read(address)
+	return c.data.Read(address)
 }
 
 func (c *Cartridge) Write(address uint16, value byte) {
-	c.Data.Write(address, value)
+	c.data.Write(address, value)
+}
+
+func (c *Cartridge) Save() error {
+	return c.data.Save()
+}
+
+func (c *Cartridge) Load() error {
+	return c.data.Load()
+}
+
+func (c *Cartridge) Mbc() MBC {
+	return c.data
 }
 
 func (c *Cartridge) initMbc(path string, data []byte) {
 	var err error
 
-	switch c.Header.CartType {
+	switch c.header.CartType {
 	case CartTypeRomOnly:
-		c.Data = MBCNone(data)
+		c.data = MBCNone(data)
 	case CartTypeMbc1, CartTypeMbc1Ram, CartTypeMbc1RamBattery:
-		c.Data, err = NewMBC1(path, data, c.Header)
+		c.data, err = NewMBC1(path, data, c.header)
 		if err != nil {
 			log.Fatalf("failed to init MBC1: %s", err)
 		}
 	case CartTypeMbc3, CartTypeMbc3Ram, CartTypeMbc3RamBattery, CartTypeMbc3TimerBattery, CartTypeMbc3TimerRamBattery:
-		c.Data, err = NewMBC3(path, data, c.Header)
+		c.data, err = NewMBC3(path, data, c.header)
 		if err != nil {
 			log.Fatalf("failed to init MBC3: %s", err)
 		}
 	default:
-		spew.Dump(c.Header)
+		spew.Dump(c.header)
 		panic("mbc type not implemented")
 	}
 }
 
 type MBC interface {
-	Read(address uint16) byte
-	Write(address uint16, value byte)
-	Save() error
-	Load() error
+	ReadWriter
+	SaveLoader
 }
 
 type MBCNone []byte

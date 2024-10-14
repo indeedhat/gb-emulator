@@ -43,7 +43,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if debugMode && logFile != "" {
+	if logFile != "" {
 		fh, err := os.Create(logFile)
 		if err != nil {
 			log.Fatal(err)

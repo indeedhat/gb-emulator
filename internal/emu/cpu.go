@@ -73,7 +73,7 @@ func (c *Cpu) String(pc uint16) string {
 		c.registers.H,
 		c.registers.L,
 		c.registers.SP,
-		c.ctx.lcd.ly,
+		c.ctx.lcd.Ly(),
 	)
 }
 
@@ -88,7 +88,7 @@ func (c *Cpu) Step() error {
 		_, instruction := c.fetchIsntruction()
 		data, destAddress := c.fetchData(instruction)
 
-		if c.ctx.debug.enbled {
+		if c.ctx.debug.Enabled() {
 			log.Print(c.ctx.lcd.String(pc))
 			c.ctx.debug.Update()
 			c.ctx.debug.Print()
@@ -300,6 +300,4 @@ func (c *Cpu) executeInstruction(instruction CpuInstriction, data uint16, destAd
 	default:
 		panic("instruction not implemented")
 	}
-
-	return false
 }

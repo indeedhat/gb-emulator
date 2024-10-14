@@ -100,6 +100,30 @@ func (l *Lcd) String(pc uint16) string {
 	)
 }
 
+func (l *Lcd) Ly() uint8 {
+	return l.ly
+}
+
+func (l *Lcd) ResetLy() {
+	l.ly = 0
+}
+
+func (l *Lcd) ScrollX() uint8 {
+	return l.scrollX
+}
+
+func (l *Lcd) ScrollY() uint8 {
+	return l.scrollY
+}
+
+func (l *Lcd) WindowX() uint8 {
+	return l.windowX
+}
+
+func (l *Lcd) WindowY() uint8 {
+	return l.windowY
+}
+
 func (l *Lcd) GetControl(code Lcdc) bool {
 	return Lcdc(l.control)&code == code
 }
@@ -136,6 +160,18 @@ func (l *Lcd) BgWinTileAddress(address uint16) uint16 {
 	return address + 0x8800
 }
 
+func (l *Lcd) BackgroundPallet() uint8 {
+	return l.backgroundPallet
+}
+
+func (l *Lcd) ObjectPallet(i uint8) uint8 {
+	if i == 0 {
+		return l.objectPallet0
+	}
+
+	return l.objectPallet1
+}
+
 func (l *Lcd) GetStatus(code LcdStatus) bool {
 	return LcdStatus(l.status)&code == code
 }
@@ -150,11 +186,11 @@ func (l *Lcd) SetMode(mode LcdMode) {
 }
 
 func (l *Lcd) IncrementLine() {
-	if l.ctx.pix.windowVisible() &&
+	if l.ctx.pix.WindowVisible() &&
 		l.ly >= l.windowY &&
 		l.ly < l.windowY+PpuYRes {
 
-		l.ctx.pix.windowX++
+		l.ctx.pix.IncrementWindowX()
 	}
 
 	l.ly++
@@ -166,7 +202,7 @@ func (l *Lcd) IncrementLine() {
 
 	l.status |= 0b100
 	if l.GetStatus(LcdStatusLyc) {
-		l.ctx.cpu.requestInterrupt(InterruptLcdStat)
+		l.ctx.cpu.RequestInterrupt(InterruptLcdStat)
 	}
 }
 

@@ -58,36 +58,37 @@ type Joypad struct {
 	ctx *Context
 }
 
-func NewJoypad(ctx *Context) *Joypad {
-	ctx.jpad = &Joypad{ctx: ctx}
+func NewJoypad(ctx *Context) ReadWriter {
+	jpad := &Joypad{ctx: ctx}
 
 	go func() {
 		for press := range ctx.JoypadCh {
 			switch press.Key {
 			case KeyUp:
-				ctx.jpad.Up = press.Down
+				jpad.Up = press.Down
 			case KeyDown:
-				ctx.jpad.Down = press.Down
+				jpad.Down = press.Down
 			case KeyRight:
-				ctx.jpad.Right = press.Down
+				jpad.Right = press.Down
 			case KeyLeft:
-				ctx.jpad.Left = press.Down
+				jpad.Left = press.Down
 			case KeyA:
-				ctx.jpad.A = press.Down
+				jpad.A = press.Down
 			case KeyB:
-				ctx.jpad.B = press.Down
+				jpad.B = press.Down
 			case KeySelect:
-				ctx.jpad.Select = press.Down
+				jpad.Select = press.Down
 			case KeyStart:
-				ctx.jpad.Start = press.Down
+				jpad.Start = press.Down
 			}
 		}
 	}()
 
+	ctx.jpad = jpad
 	return ctx.jpad
 }
 
-func (j *Joypad) Read() uint8 {
+func (j *Joypad) Read(_ uint16) uint8 {
 	var value uint8 = 0xFF
 
 	switch true {
@@ -124,7 +125,7 @@ func (j *Joypad) Read() uint8 {
 	return value
 }
 
-func (j *Joypad) Write(value uint8) {
+func (j *Joypad) Write(_ uint16, value uint8) {
 	j.ModeDpad = JpadModeDpad&value == 0
 	j.ModeActions = JpadModeActions&value == 0
 }

@@ -45,7 +45,7 @@ func (t *Timer) Tick() {
 		if t.tima == 0xFF {
 			t.tima = t.tma
 
-			t.ctx.cpu.requestInterrupt(InterruptTimer)
+			t.ctx.cpu.RequestInterrupt(InterruptTimer)
 		}
 	}
 }

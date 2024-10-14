@@ -1,9 +1,5 @@
 package emu
 
-import (
-	"log"
-)
-
 type IO struct {
 	serial []uint8
 
@@ -20,7 +16,7 @@ func NewIO(ctx *Context) {
 func (i *IO) Read(addr uint16) uint8 {
 	switch true {
 	case addr == 0xFF00:
-		return i.ctx.jpad.Read()
+		return i.ctx.jpad.Read(0)
 	case addr == 0xFF01:
 		return i.serial[0]
 	case addr == 0xFF02:
@@ -28,11 +24,11 @@ func (i *IO) Read(addr uint16) uint8 {
 	case addr >= 0xFF04 && addr <= 0xFF07:
 		return i.ctx.timer.Read(addr)
 	case addr == 0xFF0F:
-		return i.ctx.cpu.interruptFlags
+		return i.ctx.cpu.InterruptFlags()
 	case addr >= 0xFF40 && addr <= 0xFF4B:
 		return i.ctx.lcd.Read(addr)
 	default:
-		log.Printf("unsupported mem.read (IO) 0x%X", addr)
+		// log.Printf("unsupported mem.read (IO) 0x%X", addr)
 		return 0
 	}
 }
@@ -40,7 +36,7 @@ func (i *IO) Read(addr uint16) uint8 {
 func (i *IO) Write(addr uint16, value uint8) {
 	switch true {
 	case addr == 0xFF00:
-		i.ctx.jpad.Write(value)
+		i.ctx.jpad.Write(0, value)
 	case addr == 0xFF01:
 		i.serial[0] = value
 	case addr == 0xFF02:
@@ -48,10 +44,10 @@ func (i *IO) Write(addr uint16, value uint8) {
 	case addr >= 0xFF04 && addr <= 0xFF07:
 		i.ctx.timer.Write(addr, value)
 	case addr == 0xFF0F:
-		i.ctx.cpu.interruptFlags = value
+		i.ctx.cpu.SetInterruptFlags(value)
 	case addr >= 0xFF40 && addr <= 0xFF4B:
 		i.ctx.lcd.Write(addr, value)
 	default:
-		log.Printf("unsupported mem.write (IO) 0x%X", addr)
+		// log.Printf("unsupported mem.write (IO) 0x%X", addr)
 	}
 }

@@ -43,7 +43,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 	case address < 0x8000:
 		return b.ctx.cart.Read(address)
 	case address < 0xA000:
-		return b.ctx.ppu.vram.Read(address)
+		return b.ctx.ppu.Read(address)
 	case address < 0xC000:
 		// cart ram
 		return b.ctx.cart.Read(address)
@@ -54,11 +54,11 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		// Echo ram is unusable
 		return 0
 	case address < 0xFEA0:
-		if b.ctx.dma.Active {
+		if b.ctx.dma.Active() {
 			return 0xFF
 		}
 
-		value := b.ctx.ppu.oam.Read(address)
+		value := b.ctx.ppu.Read(address)
 		// if address == 0xFE40 {
 		// 	log.Fatalf("r %d,%d", address, value)
 		// }
@@ -74,9 +74,9 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 		return b.hram.Read(address)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		return b.ctx.cpu.interruptRegister
+		return b.ctx.cpu.InterruptRegister()
 	default:
-		log.Printf("unsupported mem.read 0x%X", address)
+		// log.Printf("unsupported mem.read 0x%X", address)
 	}
 	return 0
 }
@@ -90,7 +90,7 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 	case address < 0x8000:
 		b.ctx.cart.Write(address, value)
 	case address < 0xA000:
-		b.ctx.ppu.vram.Write(address, value)
+		b.ctx.ppu.Write(address, value)
 	case address < 0xC000:
 		// cart ram
 		b.ctx.cart.Write(address, value)
@@ -100,13 +100,13 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 	case address < 0xFE00:
 		// Echo ram is unusable
 	case address < 0xFEA0:
-		if b.ctx.dma.Active {
+		if b.ctx.dma.Active() {
 			return
 		}
 		if address == 0xFE40 {
 			log.Printf("w %d,%d", address, value)
 		}
-		b.ctx.ppu.oam.Write(address, value)
+		b.ctx.ppu.Write(address, value)
 	case address < 0xFF00:
 		// reserved and unusable
 	case address < 0xFF80:
@@ -117,9 +117,9 @@ func (b *MemoryBus) Write(address uint16, value uint8) {
 		b.hram.Write(address, value)
 	case address == 0xFFFF:
 		// CPU ENABLE REIGSTER
-		b.ctx.cpu.interruptRegister = value
+		b.ctx.cpu.SetInterruptRegister(value)
 	default:
-		log.Printf("unsupported mem.write 0x%X", address)
+		// log.Printf("unsupported mem.write 0x%X", address)
 	}
 }
 
