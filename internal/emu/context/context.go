@@ -6,7 +6,7 @@ import (
 )
 
 type Context struct {
-	Ticks uint64
+	ticks uint64
 
 	Cart interface {
 		ReadWriter
@@ -34,8 +34,7 @@ type Context struct {
 		Active() bool
 		Start(value uint8)
 	}
-	Jpad ReadWriter
-	Lcd  interface {
+	Lcd interface {
 		ReadWriter
 
 		GetMode() LcdMode
@@ -83,10 +82,14 @@ func NewContext() *Context {
 	}
 }
 
+func (c *Context) Ticks() uint64 {
+	return c.ticks
+}
+
 func (c *Context) EmuCycle(i uint8) {
 	for range i {
 		for range 4 {
-			c.Ticks++
+			c.ticks++
 			c.Timer.Tick()
 			c.Ppu.Tick()
 		}

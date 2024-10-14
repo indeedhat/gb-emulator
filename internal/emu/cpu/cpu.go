@@ -57,7 +57,7 @@ func (c *Cpu) String(pc uint16) string {
 	opcode := CpuInstructions[c.ctx.Bus.Read(pc)]
 
 	return fmt.Sprintf("%08X - %04X: %-7s (%02X %02X %02X) A: %02X F: %s%s%s%s BC: %02X%02X DE: %02X%02X HL: %02X%02X SP: %04X LY: %02X\n",
-		c.ctx.Ticks,
+		c.ctx.Ticks(),
 		pc,
 		opcode.Type,
 		c.ctx.Bus.Read(pc),

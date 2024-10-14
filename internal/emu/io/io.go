@@ -5,20 +5,22 @@ import "github.com/indeedhat/gb-emulator/internal/emu/context"
 type IO struct {
 	serial []uint8
 
-	ctx *context.Context
+	ctx  *context.Context
+	jpad *Joypad
 }
 
 func New(ctx *context.Context) {
 	ctx.Io = &IO{
 		serial: make([]uint8, 2),
 		ctx:    ctx,
+		jpad:   newJoypad(ctx),
 	}
 }
 
 func (i *IO) Read(addr uint16) uint8 {
 	switch true {
 	case addr == 0xFF00:
-		return i.ctx.Jpad.Read(0)
+		return i.jpad.Read(0)
 	case addr == 0xFF01:
 		return i.serial[0]
 	case addr == 0xFF02:
@@ -38,7 +40,7 @@ func (i *IO) Read(addr uint16) uint8 {
 func (i *IO) Write(addr uint16, value uint8) {
 	switch true {
 	case addr == 0xFF00:
-		i.ctx.Jpad.Write(0, value)
+		i.jpad.Write(0, value)
 	case addr == 0xFF01:
 		i.serial[0] = value
 	case addr == 0xFF02:

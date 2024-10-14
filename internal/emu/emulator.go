@@ -39,7 +39,6 @@ func NewEmulator(romPath string, debugEnabled bool) (*Emulator, *context.Context
 	debug.New(e.ctx, debugEnabled)
 	timer.New(e.ctx)
 	io.New(e.ctx)
-	io.NewJoypad(e.ctx)
 	ppu.New(e.ctx)
 	ppu.NewPixelFetcher(e.ctx)
 	ppu.NewDma(e.ctx)

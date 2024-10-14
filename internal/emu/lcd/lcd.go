@@ -60,7 +60,7 @@ func New(ctx *context.Context) {
 
 func (l *Lcd) String(pc uint16) string {
 	return fmt.Sprintf("%08X - %04X: control(%d) ly(%d) lyc(%d) status(%d) scrollX(%d) scrollY(%d) windowX(%d) windowY(%d)",
-		l.ctx.Ticks,
+		l.ctx.Ticks(),
 		pc,
 		l.control,
 		l.ly,

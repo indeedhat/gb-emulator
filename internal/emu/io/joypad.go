@@ -3,7 +3,6 @@ package io
 import (
 	"github.com/indeedhat/gb-emulator/internal/emu/context"
 	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
-	. "github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
 const (
@@ -45,7 +44,7 @@ type Joypad struct {
 	ctx *context.Context
 }
 
-func NewJoypad(ctx *context.Context) ReadWriter {
+func newJoypad(ctx *context.Context) *Joypad {
 	jpad := &Joypad{ctx: ctx}
 
 	go func() {
@@ -71,8 +70,7 @@ func NewJoypad(ctx *context.Context) ReadWriter {
 		}
 	}()
 
-	ctx.Jpad = jpad
-	return ctx.Jpad
+	return jpad
 }
 
 func (j *Joypad) Read(_ uint16) uint8 {
