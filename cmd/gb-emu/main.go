@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/indeedhat/gb-emulator/internal/emu"
 	"github.com/indeedhat/gb-emulator/internal/ui"
 )
 
@@ -34,15 +33,6 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if len(flag.Args()) < 1 {
-		log.Fatal("must pass a path to a .gb rom")
-	}
-
-	engine, ctx, err := emu.NewEmulator(flag.Arg(0), debugMode)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if logFile != "" {
 		fh, err := os.Create(logFile)
 		if err != nil {
@@ -52,15 +42,6 @@ func main() {
 		log.SetOutput(fh)
 	}
 
-	go engine.Run()
-
-	_, window := ui.NewFyneRenderer(ctx)
+	_, window := ui.NewFyneRenderer()
 	window.ShowAndRun()
-
-	// ebiten.SetWindowSize(640, 480)
-	// ebiten.SetWindowTitle("GB emulator")
-	// renderer := emu.NewLcdRenderer(ctx)
-	// if err := ebiten.RunGame(renderer); err != nil {
-	// 	log.Fatal(err)
-	// }
 }

@@ -4,57 +4,42 @@ import (
 	"image"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
+	fyneapp "fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/config"
-	"github.com/indeedhat/gb-emulator/internal/emu/context"
 	"github.com/indeedhat/gb-emulator/internal/emu/enum"
 	"github.com/indeedhat/gb-emulator/internal/emu/types"
 )
 
-func NewFyneRenderer(ctx *context.Context) (fyne.App, fyne.Window) {
-	a := app.New()
+func NewFyneRenderer() (fyne.App, fyne.Window) {
+	runner := fyneapp.New()
 
-	w := a.NewWindow("Emulator")
-	w.Resize(fyne.NewSize(640, 480))
+	win := runner.NewWindow("Emulator")
+	win.Resize(fyne.NewSize(640, 480))
 
-	c := w.Canvas()
+	canvas := win.Canvas()
+	app := &App{window: win}
 
-	dc := c.(desktop.Canvas)
-	dc.SetOnKeyDown(func(e *fyne.KeyEvent) {
-		code := mapKeyCode(e)
-		if code == enum.KeyUnknown {
-			return
-		}
+	dc := canvas.(desktop.Canvas)
+	dc.SetOnKeyDown(app.handleKeyDown)
+	dc.SetOnKeyUp(app.handleKeyUp)
 
-		ctx.JoypadCh <- types.KeyEvent{
-			Key:  code,
-			Down: true,
-		}
-	})
-	dc.SetOnKeyUp(func(e *fyne.KeyEvent) {
-		code := mapKeyCode(e)
-		if code == enum.KeyUnknown {
-			return
-		}
+	toolbar := widget.NewToolbar(
+		widget.NewToolbarAction(theme.FolderOpenIcon(), app.handleLoadRom),
+		widget.NewToolbarSeparator(),
+		widget.NewToolbarAction(theme.MediaPlayIcon(), app.handleUnPauseEmulation),
+		widget.NewToolbarAction(theme.MediaPauseIcon(), app.handlePauseEmulation),
+		widget.NewToolbarAction(theme.MediaStopIcon(), app.handleStopEmulation),
+	)
 
-		ctx.JoypadCh <- types.KeyEvent{
-			Key:  code,
-			Down: false,
-		}
-	})
+	app.container = container.NewBorder(toolbar, nil, nil, nil, container.NewWithoutLayout())
+	win.SetContent(app.container)
 
-	go func() {
-		for img := range ctx.FrameCh {
-			frame := canvas.NewImageFromImage(generateImage(img))
-			frame.FillMode = canvas.ImageFillContain
-			c.SetContent(frame)
-		}
-	}()
-
-	return a, w
+	return runner, win
 }
 
 func generateImage(data []types.Pixel) *image.RGBA {

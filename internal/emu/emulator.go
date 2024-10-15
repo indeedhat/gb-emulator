@@ -52,7 +52,7 @@ func (e *Emulator) Run() error {
 
 	go e.saveBatteryRam()
 
-	for {
+	for e.running {
 		if e.paused {
 			time.Sleep(10 * time.Millisecond)
 			continue
@@ -62,6 +62,28 @@ func (e *Emulator) Run() error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (e *Emulator) Stop() {
+	e.running = false
+}
+
+func (e *Emulator) Pause() {
+	e.paused = true
+}
+
+func (e *Emulator) Play() {
+	e.paused = false
+}
+
+func (e *Emulator) IsPaused() bool {
+	return e.paused
+}
+
+func (e *Emulator) IsRunning() bool {
+	return e.running
 }
 
 func (e *Emulator) saveBatteryRam() {
