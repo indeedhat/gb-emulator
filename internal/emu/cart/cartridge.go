@@ -39,6 +39,14 @@ func Load(path string) (*Cartridge, error) {
 	return c, nil
 }
 
+func (c *Cartridge) LoadState(data []byte) {
+	c.data.LoadState(data)
+}
+
+func (c *Cartridge) SaveState() []byte {
+	return c.data.SaveState()
+}
+
 func (c *Cartridge) Read(address uint16) byte {
 	return c.data.Read(address)
 }
@@ -98,6 +106,13 @@ func (m MBCNone) Save() error {
 
 func (m MBCNone) Load() error {
 	// NB: no battery backing for this nbc controller
+	return nil
+}
+
+func (m MBCNone) LoadState(_ []byte) {
+}
+
+func (m MBCNone) SaveState() []byte {
 	return nil
 }
 

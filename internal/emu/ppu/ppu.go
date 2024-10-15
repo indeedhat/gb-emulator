@@ -1,6 +1,9 @@
 package ppu
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"sync"
 	"time"
 
@@ -42,6 +45,34 @@ func New(ctx *context.Context) {
 	}
 
 	ctx.Ppu = ppu
+}
+
+func (p *Ppu) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	o := p.oam.Bytes()
+	r.Read(o)
+	p.oam.Fill(o)
+
+	v := p.vram.Bytes()
+	r.Read(v)
+	p.vram.Fill(v)
+
+	binary.Read(r, binary.LittleEndian, p.ticks)
+	binary.Read(r, binary.LittleEndian, p.windowX)
+}
+
+func (p *Ppu) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	buf.Write(p.oam.Bytes())
+	buf.Write(p.vram.Bytes())
+
+	binary.Write(w, binary.LittleEndian, p.ticks)
+	binary.Write(w, binary.LittleEndian, p.windowX)
+
+	return buf.Bytes()
 }
 
 func (p *Ppu) Read(address uint16) uint8 {

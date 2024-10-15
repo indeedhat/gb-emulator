@@ -1,6 +1,9 @@
 package cpu
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"log"
 
@@ -37,6 +40,51 @@ func New(ctx *context.Context) {
 		},
 		ctx: ctx,
 	}
+}
+
+func (c *Cpu) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	binary.Read(r, binary.LittleEndian, c.halted)
+	binary.Read(r, binary.LittleEndian, c.ime)
+	binary.Read(r, binary.LittleEndian, c.enablingIME)
+	binary.Read(r, binary.LittleEndian, c.interruptFlags)
+	binary.Read(r, binary.LittleEndian, c.interruptRegister)
+
+	binary.Read(r, binary.LittleEndian, c.registers.A)
+	binary.Read(r, binary.LittleEndian, c.registers.F)
+	binary.Read(r, binary.LittleEndian, c.registers.B)
+	binary.Read(r, binary.LittleEndian, c.registers.C)
+	binary.Read(r, binary.LittleEndian, c.registers.D)
+	binary.Read(r, binary.LittleEndian, c.registers.E)
+	binary.Read(r, binary.LittleEndian, c.registers.H)
+	binary.Read(r, binary.LittleEndian, c.registers.L)
+	binary.Read(r, binary.LittleEndian, c.registers.SP)
+	binary.Read(r, binary.LittleEndian, c.registers.PC)
+}
+
+func (c *Cpu) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, c.halted)
+	binary.Write(w, binary.LittleEndian, c.ime)
+	binary.Write(w, binary.LittleEndian, c.enablingIME)
+	binary.Write(w, binary.LittleEndian, c.interruptFlags)
+	binary.Write(w, binary.LittleEndian, c.interruptRegister)
+
+	binary.Write(w, binary.LittleEndian, c.registers.A)
+	binary.Write(w, binary.LittleEndian, c.registers.F)
+	binary.Write(w, binary.LittleEndian, c.registers.B)
+	binary.Write(w, binary.LittleEndian, c.registers.C)
+	binary.Write(w, binary.LittleEndian, c.registers.D)
+	binary.Write(w, binary.LittleEndian, c.registers.E)
+	binary.Write(w, binary.LittleEndian, c.registers.H)
+	binary.Write(w, binary.LittleEndian, c.registers.L)
+	binary.Write(w, binary.LittleEndian, c.registers.SP)
+	binary.Write(w, binary.LittleEndian, c.registers.PC)
+
+	return buf.Bytes()
 }
 
 func (c *Cpu) String(pc uint16) string {

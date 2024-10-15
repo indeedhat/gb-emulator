@@ -1,6 +1,9 @@
 package cart
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"io/fs"
 	"log"
@@ -52,6 +55,58 @@ func NewMBC3(path string, data []byte, header *CartHeader) (*MBC3, error) {
 	}
 
 	return m, nil
+}
+
+func (m *MBC3) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, len(m.path))
+	buf.WriteString(m.path)
+
+	binary.Write(w, binary.LittleEndian, m.romBanks)
+
+	binary.Write(w, binary.LittleEndian, m.ramBanks)
+	buf.Write(m.ramData)
+	binary.Write(w, binary.LittleEndian, m.ramRtcEnabled)
+
+	buf.Write(m.rtcData)
+	buf.Write(m.rtcLatchedData)
+	binary.Write(w, binary.LittleEndian, m.rtcLatched)
+
+	binary.Write(w, binary.LittleEndian, m.romBank)
+	binary.Write(w, binary.LittleEndian, m.ramBank)
+	binary.Write(w, binary.LittleEndian, m.rtcRegister)
+	binary.Write(w, binary.LittleEndian, m.mode)
+	binary.Write(w, binary.LittleEndian, m.hasBattery)
+
+	return buf.Bytes()
+}
+
+func (m *MBC3) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	var strlen int
+	binary.Read(r, binary.LittleEndian, strlen)
+	buf := make([]byte, strlen)
+	r.Read(buf)
+	m.path = string(buf)
+
+	binary.Read(r, binary.LittleEndian, m.romBanks)
+
+	binary.Read(r, binary.LittleEndian, m.ramBanks)
+	r.Read(m.ramData)
+	binary.Read(r, binary.LittleEndian, m.ramRtcEnabled)
+
+	r.Read(m.rtcData)
+	r.Read(m.rtcLatchedData)
+	binary.Read(r, binary.LittleEndian, m.rtcLatched)
+
+	binary.Read(r, binary.LittleEndian, m.romBank)
+	binary.Read(r, binary.LittleEndian, m.ramBank)
+	binary.Read(r, binary.LittleEndian, m.rtcRegister)
+	binary.Read(r, binary.LittleEndian, m.mode)
+	binary.Read(r, binary.LittleEndian, m.hasBattery)
 }
 
 func (m *MBC3) Read(address uint16) byte {

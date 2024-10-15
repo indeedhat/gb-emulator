@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"bytes"
 	"log"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/context"
@@ -33,6 +34,28 @@ func NewBus(ctx *context.Context) {
 		wram: NewRamBank(0xC000, 0x2000),
 		ctx:  ctx,
 	}
+}
+
+func (b *MemoryBus) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	h := b.hram.Bytes()
+	r.Read(h)
+	b.hram.Fill(h)
+
+	w := b.hram.Bytes()
+	r.Read(w)
+	b.hram.Fill(w)
+
+}
+
+func (b *MemoryBus) SaveState() []byte {
+	var buf bytes.Buffer
+
+	buf.Write(b.hram.Bytes())
+	buf.Write(b.wram.Bytes())
+
+	return buf.Bytes()
 }
 
 func (b *MemoryBus) Read(address uint16) uint8 {

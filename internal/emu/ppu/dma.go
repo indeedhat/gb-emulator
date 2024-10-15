@@ -1,6 +1,12 @@
 package ppu
 
-import "github.com/indeedhat/gb-emulator/internal/emu/context"
+import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
+
+	"github.com/indeedhat/gb-emulator/internal/emu/context"
+)
 
 type Dma struct {
 	active bool
@@ -18,6 +24,26 @@ func NewDma(ctx *context.Context) {
 	}
 }
 
+func (d *Dma) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	binary.Read(r, binary.LittleEndian, d.active)
+	binary.Read(r, binary.LittleEndian, d.startDelay)
+	binary.Read(r, binary.LittleEndian, d.byteIdx)
+	binary.Read(r, binary.LittleEndian, d.addr)
+}
+
+func (d *Dma) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, d.active)
+	binary.Write(w, binary.LittleEndian, d.startDelay)
+	binary.Write(w, binary.LittleEndian, d.byteIdx)
+	binary.Write(w, binary.LittleEndian, d.addr)
+
+	return buf.Bytes()
+}
 func (d *Dma) Active() bool {
 	return d.active
 }

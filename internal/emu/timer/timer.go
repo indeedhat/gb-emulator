@@ -1,6 +1,10 @@
 package timer
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
+
 	"github.com/indeedhat/gb-emulator/internal/emu/context"
 	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
 )
@@ -19,6 +23,27 @@ func New(ctx *context.Context) {
 		div: 0xABCC,
 		ctx: ctx,
 	}
+}
+
+func (t *Timer) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	binary.Read(r, binary.LittleEndian, t.div)
+	binary.Read(r, binary.LittleEndian, t.tima)
+	binary.Read(r, binary.LittleEndian, t.tma)
+	binary.Read(r, binary.LittleEndian, t.tac)
+}
+
+func (t *Timer) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, t.div)
+	binary.Write(w, binary.LittleEndian, t.tima)
+	binary.Write(w, binary.LittleEndian, t.tma)
+	binary.Write(w, binary.LittleEndian, t.tac)
+
+	return buf.Bytes()
 }
 
 func (t *Timer) Tick() {

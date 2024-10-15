@@ -28,7 +28,13 @@ type Cart interface {
 	Mbc() MBC
 }
 
+type Stator interface {
+	SaveState() []byte
+	LoadState(data []byte)
+}
+
 type MBC interface {
 	ReadWriter
 	SaveLoader
+	Stator
 }

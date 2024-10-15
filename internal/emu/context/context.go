@@ -1,6 +1,10 @@
 package context
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
+
 	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
 	. "github.com/indeedhat/gb-emulator/internal/emu/types"
 )
@@ -80,6 +84,90 @@ func NewContext() *Context {
 		FrameCh:  make(chan []Pixel, 2),
 		JoypadCh: make(chan KeyEvent, 2),
 	}
+}
+
+func (c *Context) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	var size int
+	binary.Read(r, binary.LittleEndian, size)
+	tmp := make([]byte, size)
+	r.Read(tmp)
+	c.Cart.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Cpu.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Dma.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Lcd.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Bus.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Pix.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Ppu.(Stator).LoadState(tmp)
+
+	binary.Read(r, binary.LittleEndian, size)
+	tmp = make([]byte, size)
+	r.Read(tmp)
+	c.Timer.(Stator).LoadState(tmp)
+}
+
+func (c *Context) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	tmp := c.Cart.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Cpu.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Dma.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Lcd.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Bus.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Pix.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Ppu.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	tmp = c.Timer.(Stator).SaveState()
+	binary.Write(w, binary.LittleEndian, len(tmp))
+	w.Write(tmp)
+
+	return buf.Bytes()
 }
 
 func (c *Context) Ticks() uint64 {

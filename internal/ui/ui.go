@@ -34,6 +34,9 @@ func NewFyneRenderer() (fyne.App, fyne.Window) {
 		widget.NewToolbarAction(theme.MediaPlayIcon(), app.handleUnPauseEmulation),
 		widget.NewToolbarAction(theme.MediaPauseIcon(), app.handlePauseEmulation),
 		widget.NewToolbarAction(theme.MediaStopIcon(), app.handleStopEmulation),
+
+		widget.NewToolbarAction(theme.DocumentSaveIcon(), app.handleSaveState),
+		widget.NewToolbarAction(theme.LoginIcon(), app.handleLoadState),
 	)
 
 	app.container = container.NewBorder(toolbar, nil, nil, nil, container.NewWithoutLayout())

@@ -5,6 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	fynecanvas "fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	fynedialog "fyne.io/fyne/v2/dialog"
 
 	"github.com/sqweek/dialog"
@@ -80,6 +81,14 @@ func (a *App) handleUnPauseEmulation() {
 	}
 }
 
+func (a *App) handleSaveState() {
+	a.emu.SaveState()
+}
+
+func (a *App) handleLoadState() {
+	a.emu.LoadState()
+}
+
 func (a *App) handleStopEmulation() {
 	if a.emu != nil {
 		a.done <- struct{}{}
@@ -89,7 +98,7 @@ func (a *App) handleStopEmulation() {
 		defer e.Stop()
 
 		a.emu = nil
-		a.container.Objects[0] = fyne.NewContainerWithoutLayout()
+		a.container.Objects[0] = container.NewWithoutLayout()
 		a.container.Refresh()
 	}
 }

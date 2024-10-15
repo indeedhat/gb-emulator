@@ -21,6 +21,8 @@ type Emulator struct {
 	paused  bool
 
 	ctx *context.Context
+
+	tmpState []byte
 }
 
 func NewEmulator(romPath string, debugEnabled bool) (*Emulator, *context.Context, error) {
@@ -86,9 +88,37 @@ func (e *Emulator) IsRunning() bool {
 	return e.running
 }
 
+func (e *Emulator) SaveState() {
+	e.paused = true
+	defer func() {
+		e.paused = false
+	}()
+
+	e.tmpState = e.ctx.SaveState()
+}
+
+func (e *Emulator) LoadState() {
+	e.paused = true
+	defer func() {
+		e.paused = false
+	}()
+
+	if len(e.tmpState) != 0 {
+		e.ctx.LoadState(e.tmpState)
+	}
+}
+
 func (e *Emulator) saveBatteryRam() {
 	ticker := time.NewTicker(1 * time.Second)
 	for range ticker.C {
+		if e.running {
+			return
+		}
+		if e.paused {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+
 		if mbc3, ok := e.ctx.Cart.Mbc().(Ticker); ok {
 			mbc3.Tick()
 		}

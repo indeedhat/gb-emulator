@@ -19,3 +19,15 @@ func (r *RamBank) Read(address uint16) uint8 {
 func (r *RamBank) Write(address uint16, value uint8) {
 	r.data[address-r.offset] = value
 }
+
+func (r *RamBank) Offset() uint16 {
+	return r.offset
+}
+
+func (r *RamBank) Bytes() []byte {
+	return r.data
+}
+
+func (r *RamBank) Fill(data []byte) {
+	r.data = data
+}

@@ -35,6 +35,14 @@ type OamRam struct {
 	data []byte
 }
 
+func (o *OamRam) Bytes() []byte {
+	return o.data
+}
+
+func (o *OamRam) Fill(data []byte) {
+	o.data = data
+}
+
 func (o *OamRam) Read(address uint16) uint8 {
 	if address >= 0xFE00 {
 		address -= 0xFE00

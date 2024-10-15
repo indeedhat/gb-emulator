@@ -1,6 +1,9 @@
 package lcd
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/config"
@@ -56,6 +59,47 @@ func New(ctx *context.Context) {
 		objectPallet0:    0xE4,
 		objectPallet1:    0xE4,
 	}
+}
+
+func (l *Lcd) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	binary.Read(r, binary.LittleEndian, l.control)
+	binary.Read(r, binary.LittleEndian, l.ly)
+	binary.Read(r, binary.LittleEndian, l.lyCompare)
+	binary.Read(r, binary.LittleEndian, l.dma)
+
+	binary.Read(r, binary.LittleEndian, l.status)
+	binary.Read(r, binary.LittleEndian, l.scrollY)
+	binary.Read(r, binary.LittleEndian, l.scrollX)
+	binary.Read(r, binary.LittleEndian, l.windowY)
+	binary.Read(r, binary.LittleEndian, l.windowX)
+
+	binary.Read(r, binary.LittleEndian, l.backgroundPallet)
+	binary.Read(r, binary.LittleEndian, l.objectPallet0)
+	binary.Read(r, binary.LittleEndian, l.objectPallet1)
+}
+
+func (l *Lcd) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, l.control)
+	binary.Write(w, binary.LittleEndian, l.ly)
+	binary.Write(w, binary.LittleEndian, l.lyCompare)
+	binary.Write(w, binary.LittleEndian, l.dma)
+
+	binary.Write(w, binary.LittleEndian, l.status)
+	binary.Write(w, binary.LittleEndian, l.scrollY)
+	binary.Write(w, binary.LittleEndian, l.scrollX)
+	binary.Write(w, binary.LittleEndian, l.windowY)
+	binary.Write(w, binary.LittleEndian, l.windowX)
+
+	binary.Write(w, binary.LittleEndian, l.backgroundPallet)
+	binary.Write(w, binary.LittleEndian, l.objectPallet0)
+	binary.Write(w, binary.LittleEndian, l.objectPallet1)
+
+	return buf.Bytes()
 }
 
 func (l *Lcd) String(pc uint16) string {

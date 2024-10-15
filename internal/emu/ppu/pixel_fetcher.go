@@ -1,6 +1,10 @@
 package ppu
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
+
 	"github.com/indeedhat/gb-emulator/internal/emu/config"
 	"github.com/indeedhat/gb-emulator/internal/emu/context"
 	. "github.com/indeedhat/gb-emulator/internal/emu/enum"
@@ -39,10 +43,9 @@ type PixelFetcher struct {
 	bgLoBit  uint8
 	bgHiBit  uint8
 
-	spriteTileId []uint8
-	spriteLoBit  []uint8
-	spriteHiBit  []uint8
-	fetchedOam   []OamEntry
+	spriteLoBit []uint8
+	spriteHiBit []uint8
+	fetchedOam  []OamEntry
 
 	pixFifo *PixelFifo
 
@@ -55,6 +58,93 @@ func NewPixelFetcher(ctx *context.Context) {
 
 		pixFifo: &PixelFifo{pixels: make([]Pixel, 16)},
 	}
+}
+
+func (p *PixelFetcher) LoadState(data []byte) {
+	r := bytes.NewReader(data)
+
+	binary.Read(r, binary.LittleEndian, p.pushed)
+	binary.Read(r, binary.LittleEndian, p.fetched)
+	binary.Read(r, binary.LittleEndian, p.fifoX)
+	binary.Read(r, binary.LittleEndian, p.lineX)
+	binary.Read(r, binary.LittleEndian, p.tileX)
+	binary.Read(r, binary.LittleEndian, p.tileY)
+	binary.Read(r, binary.LittleEndian, p.mapX)
+	binary.Read(r, binary.LittleEndian, p.mapY)
+	binary.Read(r, binary.LittleEndian, p.windowX)
+	binary.Read(r, binary.LittleEndian, p.frame)
+	binary.Read(r, binary.LittleEndian, p.done)
+	binary.Read(r, binary.LittleEndian, p.bgTileId)
+	binary.Read(r, binary.LittleEndian, p.bgLoBit)
+	binary.Read(r, binary.LittleEndian, p.bgHiBit)
+
+	var l int
+	binary.Read(r, binary.LittleEndian, l)
+	p.spriteLoBit = make([]uint8, l)
+	r.Read(p.spriteLoBit)
+	p.spriteHiBit = make([]uint8, l)
+	r.Read(p.spriteHiBit)
+
+	binary.Read(r, binary.LittleEndian, l)
+	p.fetchedOam = make([]OamEntry, l)
+	for i := range p.fetchedOam {
+		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].x)
+		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].y)
+		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].tileIdx)
+		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].flags)
+	}
+
+	binary.Read(r, binary.LittleEndian, p.pixFifo.head)
+	binary.Read(r, binary.LittleEndian, p.pixFifo.tail)
+	binary.Read(r, binary.LittleEndian, p.pixFifo.fill)
+	for i := range p.pixFifo.pixels {
+		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].R)
+		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].G)
+		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].B)
+	}
+}
+
+func (p *PixelFetcher) SaveState() []byte {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	binary.Write(w, binary.LittleEndian, p.pushed)
+	binary.Write(w, binary.LittleEndian, p.fetched)
+	binary.Write(w, binary.LittleEndian, p.fifoX)
+	binary.Write(w, binary.LittleEndian, p.lineX)
+	binary.Write(w, binary.LittleEndian, p.tileX)
+	binary.Write(w, binary.LittleEndian, p.tileY)
+	binary.Write(w, binary.LittleEndian, p.mapX)
+	binary.Write(w, binary.LittleEndian, p.mapY)
+	binary.Write(w, binary.LittleEndian, p.windowX)
+	binary.Write(w, binary.LittleEndian, p.frame)
+	binary.Write(w, binary.LittleEndian, p.done)
+	binary.Write(w, binary.LittleEndian, p.bgTileId)
+	binary.Write(w, binary.LittleEndian, p.bgLoBit)
+	binary.Write(w, binary.LittleEndian, p.bgHiBit)
+
+	binary.Write(w, binary.LittleEndian, len(p.spriteLoBit))
+	w.Write(p.spriteLoBit)
+	w.Write(p.spriteHiBit)
+
+	binary.Write(w, binary.LittleEndian, len(p.fetchedOam))
+	for i := range p.fetchedOam {
+		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].x)
+		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].y)
+		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].tileIdx)
+		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].flags)
+	}
+
+	binary.Write(w, binary.LittleEndian, p.pixFifo.head)
+	binary.Write(w, binary.LittleEndian, p.pixFifo.tail)
+	binary.Write(w, binary.LittleEndian, p.pixFifo.fill)
+	for i := range p.pixFifo.pixels {
+		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].R)
+		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].G)
+		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].B)
+	}
+
+	return buf.Bytes()
 }
 
 func (p *PixelFetcher) Reset() {
