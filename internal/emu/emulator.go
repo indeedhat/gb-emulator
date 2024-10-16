@@ -2,6 +2,7 @@ package emu
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/cart"
@@ -21,8 +22,6 @@ type Emulator struct {
 	paused  bool
 
 	ctx *context.Context
-
-	tmpState []byte
 }
 
 func NewEmulator(romPath string, debugEnabled bool) (*Emulator, *context.Context, error) {
@@ -94,7 +93,8 @@ func (e *Emulator) SaveState() {
 		e.paused = false
 	}()
 
-	e.tmpState = e.ctx.SaveState()
+	state := e.ctx.SaveState()
+	os.WriteFile(e.ctx.Cart.(*cart.Cartridge).Filepath()+".0.gbstate", state, 0644)
 }
 
 func (e *Emulator) LoadState() {
@@ -104,9 +104,9 @@ func (e *Emulator) LoadState() {
 	}()
 
 	<-time.After(30 * time.Millisecond)
-	if len(e.tmpState) != 0 {
-		log.Printf("loading state - %d", len(e.tmpState))
-		e.ctx.LoadState(e.tmpState)
+	state, err := os.ReadFile(e.ctx.Cart.(*cart.Cartridge).Filepath() + ".0.gbstate")
+	if err == nil {
+		e.ctx.LoadState(state)
 	}
 }
 

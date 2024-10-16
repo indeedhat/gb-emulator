@@ -13,6 +13,7 @@ import (
 type Cartridge struct {
 	data   MBC
 	header *CartHeader
+	path   string
 }
 
 func Load(path string) (*Cartridge, error) {
@@ -23,6 +24,7 @@ func Load(path string) (*Cartridge, error) {
 
 	c := &Cartridge{
 		header: &CartHeader{},
+		path:   path,
 	}
 
 	data, err := io.ReadAll(fh)
@@ -65,6 +67,10 @@ func (c *Cartridge) Load() error {
 
 func (c *Cartridge) Mbc() MBC {
 	return c.data
+}
+
+func (c *Cartridge) Filepath() string {
+	return c.path
 }
 
 func (c *Cartridge) initMbc(path string, data []byte) {

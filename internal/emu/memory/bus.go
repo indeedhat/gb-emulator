@@ -78,11 +78,7 @@ func (b *MemoryBus) Read(address uint16) uint8 {
 			return 0xFF
 		}
 
-		value := b.ctx.Ppu.Read(address)
-		// if address == 0xFE40 {
-		// 	log.Fatalf("r %d,%d", address, value)
-		// }
-		return value
+		return b.ctx.Ppu.Read(address)
 	case address < 0xFF00:
 		// reserved and unusable
 		return 0
