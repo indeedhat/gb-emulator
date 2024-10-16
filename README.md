@@ -1,6 +1,6 @@
 # Gameboy emulator written in go
 
-Currently technically functional although it only works with games that don't require window scroling or cartridge bank switching
+Well, it runs pokemon red
 
 ## Keymap (Sorry its setup for dvorak)
 ```
@@ -22,15 +22,19 @@ make build
 
 
 ## TODO (Emulation)
-- [ ] Bank switching
+- [x] Bank switching
+- [ ] allow multiple state slots
+- [ ] auto save state
+- [ ] fix screen flicker
 - [ ] Sound
 - [ ] Window scroll (still work to do)
 
 ## TODO (User Interface)
 - [ ] file menu
-    - [ ] load rom
-    - [ ] save state
-    - [ ] load state
+    - [x] load rom
+    - [x] save state
+    - [x] load state
+    - [ ] remap key binds
 - [ ] debug windows
     - [ ] tile maps
     - [ ] Cpu registers
