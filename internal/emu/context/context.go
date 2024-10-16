@@ -1,7 +1,6 @@
 package context
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 
@@ -89,43 +88,43 @@ func NewContext() *Context {
 func (c *Context) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	var size int
-	binary.Read(r, binary.LittleEndian, size)
+	var size int64
+	binary.Read(r, binary.BigEndian, &size)
 	tmp := make([]byte, size)
 	r.Read(tmp)
 	c.Cart.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Cpu.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Dma.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Lcd.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Bus.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Pix.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Ppu.(Stator).LoadState(tmp)
 
-	binary.Read(r, binary.LittleEndian, size)
+	binary.Read(r, binary.BigEndian, &size)
 	tmp = make([]byte, size)
 	r.Read(tmp)
 	c.Timer.(Stator).LoadState(tmp)
@@ -133,39 +132,38 @@ func (c *Context) LoadState(data []byte) {
 
 func (c *Context) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
 	tmp := c.Cart.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Cpu.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Dma.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Lcd.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Bus.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Pix.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Ppu.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	tmp = c.Timer.(Stator).SaveState()
-	binary.Write(w, binary.LittleEndian, len(tmp))
-	w.Write(tmp)
+	binary.Write(&buf, binary.BigEndian, int64(len(tmp)))
+	buf.Write(tmp)
 
 	return buf.Bytes()
 }

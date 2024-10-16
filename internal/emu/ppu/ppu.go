@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"sync"
@@ -58,19 +57,18 @@ func (p *Ppu) LoadState(data []byte) {
 	r.Read(v)
 	p.vram.Fill(v)
 
-	binary.Read(r, binary.LittleEndian, p.ticks)
-	binary.Read(r, binary.LittleEndian, p.windowX)
+	binary.Read(r, binary.BigEndian, &p.ticks)
+	binary.Read(r, binary.BigEndian, &p.windowX)
 }
 
 func (p *Ppu) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
 	buf.Write(p.oam.Bytes())
 	buf.Write(p.vram.Bytes())
 
-	binary.Write(w, binary.LittleEndian, p.ticks)
-	binary.Write(w, binary.LittleEndian, p.windowX)
+	binary.Write(&buf, binary.BigEndian, p.ticks)
+	binary.Write(&buf, binary.BigEndian, p.windowX)
 
 	return buf.Bytes()
 }

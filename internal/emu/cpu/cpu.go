@@ -1,7 +1,6 @@
 package cpu
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -45,44 +44,43 @@ func New(ctx *context.Context) {
 func (c *Cpu) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	binary.Read(r, binary.LittleEndian, c.halted)
-	binary.Read(r, binary.LittleEndian, c.ime)
-	binary.Read(r, binary.LittleEndian, c.enablingIME)
-	binary.Read(r, binary.LittleEndian, c.interruptFlags)
-	binary.Read(r, binary.LittleEndian, c.interruptRegister)
+	binary.Read(r, binary.BigEndian, &c.halted)
+	binary.Read(r, binary.BigEndian, &c.ime)
+	binary.Read(r, binary.BigEndian, &c.enablingIME)
+	binary.Read(r, binary.BigEndian, &c.interruptFlags)
+	binary.Read(r, binary.BigEndian, &c.interruptRegister)
 
-	binary.Read(r, binary.LittleEndian, c.registers.A)
-	binary.Read(r, binary.LittleEndian, c.registers.F)
-	binary.Read(r, binary.LittleEndian, c.registers.B)
-	binary.Read(r, binary.LittleEndian, c.registers.C)
-	binary.Read(r, binary.LittleEndian, c.registers.D)
-	binary.Read(r, binary.LittleEndian, c.registers.E)
-	binary.Read(r, binary.LittleEndian, c.registers.H)
-	binary.Read(r, binary.LittleEndian, c.registers.L)
-	binary.Read(r, binary.LittleEndian, c.registers.SP)
-	binary.Read(r, binary.LittleEndian, c.registers.PC)
+	binary.Read(r, binary.BigEndian, &c.registers.A)
+	binary.Read(r, binary.BigEndian, &c.registers.F)
+	binary.Read(r, binary.BigEndian, &c.registers.B)
+	binary.Read(r, binary.BigEndian, &c.registers.C)
+	binary.Read(r, binary.BigEndian, &c.registers.D)
+	binary.Read(r, binary.BigEndian, &c.registers.E)
+	binary.Read(r, binary.BigEndian, &c.registers.H)
+	binary.Read(r, binary.BigEndian, &c.registers.L)
+	binary.Read(r, binary.BigEndian, &c.registers.SP)
+	binary.Read(r, binary.BigEndian, &c.registers.PC)
 }
 
 func (c *Cpu) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
-	binary.Write(w, binary.LittleEndian, c.halted)
-	binary.Write(w, binary.LittleEndian, c.ime)
-	binary.Write(w, binary.LittleEndian, c.enablingIME)
-	binary.Write(w, binary.LittleEndian, c.interruptFlags)
-	binary.Write(w, binary.LittleEndian, c.interruptRegister)
+	binary.Write(&buf, binary.BigEndian, c.halted)
+	binary.Write(&buf, binary.BigEndian, c.ime)
+	binary.Write(&buf, binary.BigEndian, c.enablingIME)
+	binary.Write(&buf, binary.BigEndian, c.interruptFlags)
+	binary.Write(&buf, binary.BigEndian, c.interruptRegister)
 
-	binary.Write(w, binary.LittleEndian, c.registers.A)
-	binary.Write(w, binary.LittleEndian, c.registers.F)
-	binary.Write(w, binary.LittleEndian, c.registers.B)
-	binary.Write(w, binary.LittleEndian, c.registers.C)
-	binary.Write(w, binary.LittleEndian, c.registers.D)
-	binary.Write(w, binary.LittleEndian, c.registers.E)
-	binary.Write(w, binary.LittleEndian, c.registers.H)
-	binary.Write(w, binary.LittleEndian, c.registers.L)
-	binary.Write(w, binary.LittleEndian, c.registers.SP)
-	binary.Write(w, binary.LittleEndian, c.registers.PC)
+	binary.Write(&buf, binary.BigEndian, c.registers.A)
+	binary.Write(&buf, binary.BigEndian, c.registers.F)
+	binary.Write(&buf, binary.BigEndian, c.registers.B)
+	binary.Write(&buf, binary.BigEndian, c.registers.C)
+	binary.Write(&buf, binary.BigEndian, c.registers.D)
+	binary.Write(&buf, binary.BigEndian, c.registers.E)
+	binary.Write(&buf, binary.BigEndian, c.registers.H)
+	binary.Write(&buf, binary.BigEndian, c.registers.L)
+	binary.Write(&buf, binary.BigEndian, c.registers.SP)
+	binary.Write(&buf, binary.BigEndian, c.registers.PC)
 
 	return buf.Bytes()
 }

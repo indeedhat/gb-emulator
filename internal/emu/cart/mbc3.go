@@ -1,7 +1,6 @@
 package cart
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -59,26 +58,26 @@ func NewMBC3(path string, data []byte, header *CartHeader) (*MBC3, error) {
 
 func (m *MBC3) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
-	binary.Write(w, binary.LittleEndian, len(m.path))
+	log.Print(binary.Write(&buf, binary.BigEndian, int64(len(m.path))))
+	log.Print(buf.Bytes())
 	buf.WriteString(m.path)
 
-	binary.Write(w, binary.LittleEndian, m.romBanks)
+	binary.Write(&buf, binary.BigEndian, m.romBanks)
 
-	binary.Write(w, binary.LittleEndian, m.ramBanks)
+	binary.Write(&buf, binary.BigEndian, m.ramBanks)
 	buf.Write(m.ramData)
-	binary.Write(w, binary.LittleEndian, m.ramRtcEnabled)
+	binary.Write(&buf, binary.BigEndian, m.ramRtcEnabled)
 
 	buf.Write(m.rtcData)
 	buf.Write(m.rtcLatchedData)
-	binary.Write(w, binary.LittleEndian, m.rtcLatched)
+	binary.Write(&buf, binary.BigEndian, m.rtcLatched)
 
-	binary.Write(w, binary.LittleEndian, m.romBank)
-	binary.Write(w, binary.LittleEndian, m.ramBank)
-	binary.Write(w, binary.LittleEndian, m.rtcRegister)
-	binary.Write(w, binary.LittleEndian, m.mode)
-	binary.Write(w, binary.LittleEndian, m.hasBattery)
+	binary.Write(&buf, binary.BigEndian, m.romBank)
+	binary.Write(&buf, binary.BigEndian, m.ramBank)
+	binary.Write(&buf, binary.BigEndian, m.rtcRegister)
+	binary.Write(&buf, binary.BigEndian, m.mode)
+	binary.Write(&buf, binary.BigEndian, m.hasBattery)
 
 	return buf.Bytes()
 }
@@ -86,27 +85,28 @@ func (m *MBC3) SaveState() []byte {
 func (m *MBC3) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	var strlen int
-	binary.Read(r, binary.LittleEndian, strlen)
+	var strlen int64
+	binary.Read(r, binary.BigEndian, &strlen)
+	log.Print(data[0:8], strlen)
 	buf := make([]byte, strlen)
 	r.Read(buf)
 	m.path = string(buf)
 
-	binary.Read(r, binary.LittleEndian, m.romBanks)
+	binary.Read(r, binary.BigEndian, &m.romBanks)
 
-	binary.Read(r, binary.LittleEndian, m.ramBanks)
+	binary.Read(r, binary.BigEndian, &m.ramBanks)
 	r.Read(m.ramData)
-	binary.Read(r, binary.LittleEndian, m.ramRtcEnabled)
+	binary.Read(r, binary.BigEndian, &m.ramRtcEnabled)
 
 	r.Read(m.rtcData)
 	r.Read(m.rtcLatchedData)
-	binary.Read(r, binary.LittleEndian, m.rtcLatched)
+	binary.Read(r, binary.BigEndian, &m.rtcLatched)
 
-	binary.Read(r, binary.LittleEndian, m.romBank)
-	binary.Read(r, binary.LittleEndian, m.ramBank)
-	binary.Read(r, binary.LittleEndian, m.rtcRegister)
-	binary.Read(r, binary.LittleEndian, m.mode)
-	binary.Read(r, binary.LittleEndian, m.hasBattery)
+	binary.Read(r, binary.BigEndian, &m.romBank)
+	binary.Read(r, binary.BigEndian, &m.ramBank)
+	binary.Read(r, binary.BigEndian, &m.rtcRegister)
+	binary.Read(r, binary.BigEndian, &m.mode)
+	binary.Read(r, binary.BigEndian, &m.hasBattery)
 }
 
 func (m *MBC3) Read(address uint16) byte {

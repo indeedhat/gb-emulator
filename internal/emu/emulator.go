@@ -103,7 +103,9 @@ func (e *Emulator) LoadState() {
 		e.paused = false
 	}()
 
+	<-time.After(30 * time.Millisecond)
 	if len(e.tmpState) != 0 {
+		log.Printf("loading state - %d", len(e.tmpState))
 		e.ctx.LoadState(e.tmpState)
 	}
 }

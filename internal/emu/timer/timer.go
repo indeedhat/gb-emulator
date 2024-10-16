@@ -1,7 +1,6 @@
 package timer
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 
@@ -28,20 +27,19 @@ func New(ctx *context.Context) {
 func (t *Timer) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	binary.Read(r, binary.LittleEndian, t.div)
-	binary.Read(r, binary.LittleEndian, t.tima)
-	binary.Read(r, binary.LittleEndian, t.tma)
-	binary.Read(r, binary.LittleEndian, t.tac)
+	binary.Read(r, binary.BigEndian, &t.div)
+	binary.Read(r, binary.BigEndian, &t.tima)
+	binary.Read(r, binary.BigEndian, &t.tma)
+	binary.Read(r, binary.BigEndian, &t.tac)
 }
 
 func (t *Timer) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
-	binary.Write(w, binary.LittleEndian, t.div)
-	binary.Write(w, binary.LittleEndian, t.tima)
-	binary.Write(w, binary.LittleEndian, t.tma)
-	binary.Write(w, binary.LittleEndian, t.tac)
+	binary.Write(&buf, binary.BigEndian, t.div)
+	binary.Write(&buf, binary.BigEndian, t.tima)
+	binary.Write(&buf, binary.BigEndian, t.tma)
+	binary.Write(&buf, binary.BigEndian, t.tac)
 
 	return buf.Bytes()
 }

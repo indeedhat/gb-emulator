@@ -1,7 +1,6 @@
 package cart
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -49,22 +48,21 @@ func NewMBC1(path string, data []byte, header *CartHeader) (*MBC1, error) {
 
 func (m *MBC1) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
-	binary.Write(w, binary.LittleEndian, len(m.path))
+	binary.Write(&buf, binary.BigEndian, int64(len(m.path)))
 	buf.WriteString(m.path)
 
-	binary.Write(w, binary.LittleEndian, m.romBanks)
+	binary.Write(&buf, binary.BigEndian, m.romBanks)
 
-	binary.Write(w, binary.LittleEndian, m.ramBanks)
+	binary.Write(&buf, binary.BigEndian, m.ramBanks)
 	buf.Write(m.ramData)
-	binary.Write(w, binary.LittleEndian, m.ramEnabled)
+	binary.Write(&buf, binary.BigEndian, m.ramEnabled)
 
-	binary.Write(w, binary.LittleEndian, m.romBank)
-	binary.Write(w, binary.LittleEndian, m.romBank2)
-	binary.Write(w, binary.LittleEndian, m.ramBank)
-	binary.Write(w, binary.LittleEndian, m.mode)
-	binary.Write(w, binary.LittleEndian, m.hasBattery)
+	binary.Write(&buf, binary.BigEndian, m.romBank)
+	binary.Write(&buf, binary.BigEndian, m.romBank2)
+	binary.Write(&buf, binary.BigEndian, m.ramBank)
+	binary.Write(&buf, binary.BigEndian, m.mode)
+	binary.Write(&buf, binary.BigEndian, m.hasBattery)
 
 	return buf.Bytes()
 }
@@ -72,23 +70,23 @@ func (m *MBC1) SaveState() []byte {
 func (m *MBC1) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	var strlen int
-	binary.Read(r, binary.LittleEndian, strlen)
+	var strlen int64
+	binary.Read(r, binary.BigEndian, &strlen)
 	buf := make([]byte, strlen)
 	r.Read(buf)
 	m.path = string(buf)
 
-	binary.Read(r, binary.LittleEndian, m.romBanks)
+	binary.Read(r, binary.BigEndian, &m.romBanks)
 
-	binary.Read(r, binary.LittleEndian, m.ramBanks)
+	binary.Read(r, binary.BigEndian, &m.ramBanks)
 	r.Read(m.ramData)
-	binary.Read(r, binary.LittleEndian, m.ramEnabled)
+	binary.Read(r, binary.BigEndian, &m.ramEnabled)
 
-	binary.Read(r, binary.LittleEndian, m.romBank)
-	binary.Read(r, binary.LittleEndian, m.romBank2)
-	binary.Read(r, binary.LittleEndian, m.ramBank)
-	binary.Read(r, binary.LittleEndian, m.mode)
-	binary.Read(r, binary.LittleEndian, m.hasBattery)
+	binary.Read(r, binary.BigEndian, &m.romBank)
+	binary.Read(r, binary.BigEndian, &m.romBank2)
+	binary.Read(r, binary.BigEndian, &m.ramBank)
+	binary.Read(r, binary.BigEndian, &m.mode)
+	binary.Read(r, binary.BigEndian, &m.hasBattery)
 }
 
 func (m *MBC1) Read(address uint16) byte {

@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 
@@ -63,85 +62,84 @@ func NewPixelFetcher(ctx *context.Context) {
 func (p *PixelFetcher) LoadState(data []byte) {
 	r := bytes.NewReader(data)
 
-	binary.Read(r, binary.LittleEndian, p.pushed)
-	binary.Read(r, binary.LittleEndian, p.fetched)
-	binary.Read(r, binary.LittleEndian, p.fifoX)
-	binary.Read(r, binary.LittleEndian, p.lineX)
-	binary.Read(r, binary.LittleEndian, p.tileX)
-	binary.Read(r, binary.LittleEndian, p.tileY)
-	binary.Read(r, binary.LittleEndian, p.mapX)
-	binary.Read(r, binary.LittleEndian, p.mapY)
-	binary.Read(r, binary.LittleEndian, p.windowX)
-	binary.Read(r, binary.LittleEndian, p.frame)
-	binary.Read(r, binary.LittleEndian, p.done)
-	binary.Read(r, binary.LittleEndian, p.bgTileId)
-	binary.Read(r, binary.LittleEndian, p.bgLoBit)
-	binary.Read(r, binary.LittleEndian, p.bgHiBit)
+	binary.Read(r, binary.BigEndian, &p.pushed)
+	binary.Read(r, binary.BigEndian, &p.fetched)
+	binary.Read(r, binary.BigEndian, &p.fifoX)
+	binary.Read(r, binary.BigEndian, &p.lineX)
+	binary.Read(r, binary.BigEndian, &p.tileX)
+	binary.Read(r, binary.BigEndian, &p.tileY)
+	binary.Read(r, binary.BigEndian, &p.mapX)
+	binary.Read(r, binary.BigEndian, &p.mapY)
+	binary.Read(r, binary.BigEndian, &p.windowX)
+	binary.Read(r, binary.BigEndian, &p.frame)
+	binary.Read(r, binary.BigEndian, &p.done)
+	binary.Read(r, binary.BigEndian, &p.bgTileId)
+	binary.Read(r, binary.BigEndian, &p.bgLoBit)
+	binary.Read(r, binary.BigEndian, &p.bgHiBit)
 
-	var l int
-	binary.Read(r, binary.LittleEndian, l)
+	var l int64
+	binary.Read(r, binary.BigEndian, &l)
 	p.spriteLoBit = make([]uint8, l)
 	r.Read(p.spriteLoBit)
 	p.spriteHiBit = make([]uint8, l)
 	r.Read(p.spriteHiBit)
 
-	binary.Read(r, binary.LittleEndian, l)
+	binary.Read(r, binary.BigEndian, &l)
 	p.fetchedOam = make([]OamEntry, l)
 	for i := range p.fetchedOam {
-		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].x)
-		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].y)
-		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].tileIdx)
-		binary.Read(r, binary.LittleEndian, p.fetchedOam[i].flags)
+		binary.Read(r, binary.BigEndian, &p.fetchedOam[i].x)
+		binary.Read(r, binary.BigEndian, &p.fetchedOam[i].y)
+		binary.Read(r, binary.BigEndian, &p.fetchedOam[i].tileIdx)
+		binary.Read(r, binary.BigEndian, &p.fetchedOam[i].flags)
 	}
 
-	binary.Read(r, binary.LittleEndian, p.pixFifo.head)
-	binary.Read(r, binary.LittleEndian, p.pixFifo.tail)
-	binary.Read(r, binary.LittleEndian, p.pixFifo.fill)
+	binary.Read(r, binary.BigEndian, &p.pixFifo.head)
+	binary.Read(r, binary.BigEndian, &p.pixFifo.tail)
+	binary.Read(r, binary.BigEndian, &p.pixFifo.fill)
 	for i := range p.pixFifo.pixels {
-		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].R)
-		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].G)
-		binary.Read(r, binary.LittleEndian, p.pixFifo.pixels[i].B)
+		binary.Read(r, binary.BigEndian, &p.pixFifo.pixels[i].R)
+		binary.Read(r, binary.BigEndian, &p.pixFifo.pixels[i].G)
+		binary.Read(r, binary.BigEndian, &p.pixFifo.pixels[i].B)
 	}
 }
 
 func (p *PixelFetcher) SaveState() []byte {
 	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
 
-	binary.Write(w, binary.LittleEndian, p.pushed)
-	binary.Write(w, binary.LittleEndian, p.fetched)
-	binary.Write(w, binary.LittleEndian, p.fifoX)
-	binary.Write(w, binary.LittleEndian, p.lineX)
-	binary.Write(w, binary.LittleEndian, p.tileX)
-	binary.Write(w, binary.LittleEndian, p.tileY)
-	binary.Write(w, binary.LittleEndian, p.mapX)
-	binary.Write(w, binary.LittleEndian, p.mapY)
-	binary.Write(w, binary.LittleEndian, p.windowX)
-	binary.Write(w, binary.LittleEndian, p.frame)
-	binary.Write(w, binary.LittleEndian, p.done)
-	binary.Write(w, binary.LittleEndian, p.bgTileId)
-	binary.Write(w, binary.LittleEndian, p.bgLoBit)
-	binary.Write(w, binary.LittleEndian, p.bgHiBit)
+	binary.Write(&buf, binary.BigEndian, p.pushed)
+	binary.Write(&buf, binary.BigEndian, p.fetched)
+	binary.Write(&buf, binary.BigEndian, p.fifoX)
+	binary.Write(&buf, binary.BigEndian, p.lineX)
+	binary.Write(&buf, binary.BigEndian, p.tileX)
+	binary.Write(&buf, binary.BigEndian, p.tileY)
+	binary.Write(&buf, binary.BigEndian, p.mapX)
+	binary.Write(&buf, binary.BigEndian, p.mapY)
+	binary.Write(&buf, binary.BigEndian, p.windowX)
+	binary.Write(&buf, binary.BigEndian, p.frame)
+	binary.Write(&buf, binary.BigEndian, p.done)
+	binary.Write(&buf, binary.BigEndian, p.bgTileId)
+	binary.Write(&buf, binary.BigEndian, p.bgLoBit)
+	binary.Write(&buf, binary.BigEndian, p.bgHiBit)
 
-	binary.Write(w, binary.LittleEndian, len(p.spriteLoBit))
-	w.Write(p.spriteLoBit)
-	w.Write(p.spriteHiBit)
+	binary.Write(&buf, binary.BigEndian, int64(len(p.spriteLoBit)))
+	buf.Write(p.spriteLoBit)
+	buf.Write(p.spriteHiBit)
 
-	binary.Write(w, binary.LittleEndian, len(p.fetchedOam))
+	binary.Write(&buf, binary.BigEndian, int64(len(p.fetchedOam)))
 	for i := range p.fetchedOam {
-		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].x)
-		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].y)
-		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].tileIdx)
-		binary.Write(w, binary.LittleEndian, p.fetchedOam[i].flags)
+		binary.Write(&buf, binary.BigEndian, p.fetchedOam[i].x)
+		binary.Write(&buf, binary.BigEndian, p.fetchedOam[i].y)
+		binary.Write(&buf, binary.BigEndian, p.fetchedOam[i].tileIdx)
+		binary.Write(&buf, binary.BigEndian, p.fetchedOam[i].flags)
 	}
 
-	binary.Write(w, binary.LittleEndian, p.pixFifo.head)
-	binary.Write(w, binary.LittleEndian, p.pixFifo.tail)
-	binary.Write(w, binary.LittleEndian, p.pixFifo.fill)
+	binary.Write(&buf, binary.BigEndian, p.pixFifo.head)
+	binary.Write(&buf, binary.BigEndian, p.pixFifo.tail)
+	binary.Write(&buf, binary.BigEndian, p.pixFifo.fill)
 	for i := range p.pixFifo.pixels {
-		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].R)
-		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].G)
-		binary.Write(w, binary.LittleEndian, p.pixFifo.pixels[i].B)
+		binary.Write(&buf, binary.BigEndian, p.pixFifo.pixels[i].R)
+		binary.Write(&buf, binary.BigEndian, p.pixFifo.pixels[i].G)
+		binary.Write(&buf, binary.BigEndian, p.pixFifo.pixels[i].B)
 	}
 
 	return buf.Bytes()
