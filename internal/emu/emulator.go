@@ -3,6 +3,7 @@ package emu
 import (
 	"log"
 	"os"
+	"path"
 	"time"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/cart"
@@ -87,25 +88,28 @@ func (e *Emulator) IsRunning() bool {
 	return e.running
 }
 
-func (e *Emulator) SaveState() {
+func (e *Emulator) SaveState(filepath string) {
 	e.paused = true
 	defer func() {
 		e.paused = false
 	}()
 
+	dir := path.Dir(filepath)
+	os.MkdirAll(dir, 0744)
+
 	state := e.ctx.SaveState()
-	os.WriteFile(e.ctx.Cart.(*cart.Cartridge).Filepath()+".0.gbstate", state, 0644)
+	os.WriteFile(filepath, state, 0644)
 }
 
-func (e *Emulator) LoadState() {
+func (e *Emulator) LoadState(path string) {
 	e.paused = true
 	defer func() {
 		e.paused = false
 	}()
 
 	<-time.After(30 * time.Millisecond)
-	state, err := os.ReadFile(e.ctx.Cart.(*cart.Cartridge).Filepath() + ".0.gbstate")
-	if err == nil {
+
+	if state, err := os.ReadFile(path); err == nil {
 		e.ctx.LoadState(state)
 	}
 }
