@@ -5,10 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	fyneapp "fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/config"
 	"github.com/indeedhat/gb-emulator/internal/emu/enum"
@@ -16,31 +13,23 @@ import (
 )
 
 func NewFyneRenderer() (fyne.App, fyne.Window) {
-	runner := fyneapp.New()
+	runner := fyneapp.NewWithID("dev.indeedhat.gb-emu")
 
 	win := runner.NewWindow("Emulator")
 	win.Resize(fyne.NewSize(640, 480))
 
 	canvas := win.Canvas()
-	app := &App{window: win}
+	app := &App{
+		window: win,
+		runner: runner,
+	}
+	app.menu = NewMenu(runner, app)
 
 	dc := canvas.(desktop.Canvas)
 	dc.SetOnKeyDown(app.handleKeyDown)
 	dc.SetOnKeyUp(app.handleKeyUp)
 
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.FolderOpenIcon(), app.handleLoadRom),
-		widget.NewToolbarSeparator(),
-		widget.NewToolbarAction(theme.MediaPlayIcon(), app.handleUnPauseEmulation),
-		widget.NewToolbarAction(theme.MediaPauseIcon(), app.handlePauseEmulation),
-		widget.NewToolbarAction(theme.MediaStopIcon(), app.handleStopEmulation),
-
-		widget.NewToolbarAction(theme.DocumentSaveIcon(), app.handleSaveState),
-		widget.NewToolbarAction(theme.LoginIcon(), app.handleLoadState),
-	)
-
-	app.container = container.NewBorder(toolbar, nil, nil, nil, container.NewWithoutLayout())
-	win.SetContent(app.container)
+	win.SetMainMenu(app.menu.Root)
 
 	return runner, win
 }

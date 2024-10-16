@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"time"
 
 	"fyne.io/fyne/v2"
 	fynecanvas "fyne.io/fyne/v2/canvas"
@@ -21,8 +22,14 @@ type App struct {
 	ctx  *context.Context
 	done chan struct{}
 
-	window    fyne.Window
-	container *fyne.Container
+	runner fyne.App
+	window fyne.Window
+
+	menu *Menu
+
+	stateSlot       int
+	stateSlotRotate bool
+	stateAutoSave   bool
 }
 
 func (a *App) renderLoop() {
@@ -33,73 +40,113 @@ func (a *App) renderLoop() {
 		case img := <-a.ctx.FrameCh:
 			frame := fynecanvas.NewImageFromImage(generateImage(img))
 			frame.FillMode = fynecanvas.ImageFillContain
-			a.container.Objects[0] = frame
-			a.container.Refresh()
+			a.window.SetContent(frame)
 		}
 	}
 }
 
-func (a *App) handleLoadRom() {
-	if a.emu != nil {
-		a.handleStopEmulation()
+func (a *App) autosaveLoop() {
+	ticker := time.NewTicker(30 * time.Second)
+	for {
+		select {
+		case <-a.done:
+			break
+		case <-ticker.C:
+			if a.emu != nil && a.runner.Preferences().Bool("auto-save-state") {
+				a.handleSaveState(a.menu.statePath(10))()
+			}
+		}
 	}
+}
 
-	dir, err := os.Getwd()
-	if err != nil {
-		fynedialog.ShowError(err, a.window)
-		return
+func (a *App) handleLoadRom(filename string) func() {
+	return func() {
+		var err error
+		if filename == "" {
+			if a.emu != nil {
+				a.handleStopEmulation()
+			}
+
+			dir, err := os.Getwd()
+			if err != nil {
+				fynedialog.ShowError(err, a.window)
+				return
+			}
+
+			filename, err = dialog.File().SetStartDir(dir).Filter(".gb files", "gb").Load()
+			if err != nil {
+				fynedialog.ShowError(err, a.window)
+				return
+			}
+		}
+
+		a.emu, a.ctx, err = emu.NewEmulator(filename, false)
+		if err != nil {
+			fynedialog.ShowError(err, a.window)
+			a.handleStopEmulation()
+			return
+		}
+
+		a.done = make(chan struct{})
+
+		go a.emu.Run()
+		go a.renderLoop()
+		go a.autosaveLoop()
+
+		a.menu.TriggerEmuRunnung()
+		a.menu.TriggerRecentReload(filename)
+		a.menu.TriggerStateReload()
 	}
+}
 
-	filename, err := dialog.File().SetStartDir(dir).Filter(".gb files", "gb").Load()
-	if err != nil {
-		fynedialog.ShowError(err, a.window)
-		return
-	}
-
-	a.emu, a.ctx, err = emu.NewEmulator(filename, false)
-	if err != nil {
-		fynedialog.ShowError(err, a.window)
-		a.handleStopEmulation()
-		return
-	}
-
-	a.done = make(chan struct{})
-
-	go a.emu.Run()
-	go a.renderLoop()
+func (a *App) handleAutosaveToggle() bool {
+	current := a.runner.Preferences().Bool("auto-save-state")
+	a.runner.Preferences().SetBool("auto-save-state", !current)
+	a.menu.TriggerStateReload()
+	return !current
 }
 
 func (a *App) handlePauseEmulation() {
 	if a.emu != nil {
 		a.emu.Pause()
+		a.menu.TriggerEmuPause()
 	}
 }
 
 func (a *App) handleUnPauseEmulation() {
 	if a.emu != nil {
 		a.emu.Play()
+		a.menu.TriggerEmuRunnung()
 	}
-}
-
-func (a *App) handleSaveState() {
-	a.emu.SaveState()
-}
-
-func (a *App) handleLoadState() {
-	a.emu.LoadState()
 }
 
 func (a *App) handleStopEmulation() {
 	if a.emu != nil {
+		// TODO: this is a nasty hack to close both the render and autosave loops but its midnight
+		//       and i can't be bothered to do this properly
+		a.done <- struct{}{}
 		a.done <- struct{}{}
 		close(a.done)
 
 		e := a.emu
 		defer e.Stop()
+		defer a.menu.TriggerEmuStop()
 
 		a.emu = nil
-		a.container.Objects[0] = container.NewWithoutLayout()
-		a.container.Refresh()
+		a.window.SetContent(container.NewWithoutLayout())
+	}
+}
+
+func (a *App) handleSaveState(path string) func() {
+	return func() {
+		a.emu.SaveState(path)
+		a.menu.TriggerStateReload()
+	}
+}
+
+func (a *App) handleLoadState(path string) func() {
+	return func() {
+		a.emu.LoadState(path)
 	}
 }
 
