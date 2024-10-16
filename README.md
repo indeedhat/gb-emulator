@@ -23,8 +23,8 @@ make build
 
 ## TODO (Emulation)
 - [x] Bank switching
-- [ ] allow multiple state slots
-- [ ] auto save state
+- [x] allow multiple state slots
+- [x] auto save state
 - [ ] fix screen flicker
 - [ ] Sound
 - [ ] Window scroll (still work to do)
@@ -34,6 +34,8 @@ make build
     - [x] load rom
     - [x] save state
     - [x] load state
+    - [ ] pause emulation when a menu is open
+    - [ ] prompt for state override?
     - [ ] remap key binds
 - [ ] debug windows
     - [ ] tile maps
