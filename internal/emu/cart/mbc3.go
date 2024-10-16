@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io/fs"
-	"log"
 	"os"
 
 	. "github.com/indeedhat/gb-emulator/internal/emu/types"
@@ -59,8 +58,7 @@ func NewMBC3(path string, data []byte, header *CartHeader) (*MBC3, error) {
 func (m *MBC3) SaveState() []byte {
 	var buf bytes.Buffer
 
-	log.Print(binary.Write(&buf, binary.BigEndian, int64(len(m.path))))
-	log.Print(buf.Bytes())
+	binary.Write(&buf, binary.BigEndian, int64(len(m.path)))
 	buf.WriteString(m.path)
 
 	binary.Write(&buf, binary.BigEndian, m.romBanks)
@@ -87,7 +85,6 @@ func (m *MBC3) LoadState(data []byte) {
 
 	var strlen int64
 	binary.Read(r, binary.BigEndian, &strlen)
-	log.Print(data[0:8], strlen)
 	buf := make([]byte, strlen)
 	r.Read(buf)
 	m.path = string(buf)
@@ -155,7 +152,6 @@ func (m *MBC3) Write(address uint16, value byte) {
 
 		if value <= 0x3 {
 			m.ramBank = value
-			log.Printf("\n ------------------------\nchange ram bank %d", value)
 		} else if value >= 0x8 && value <= 0xC {
 			m.rtcRegister = value - 0x8
 		}
@@ -177,7 +173,6 @@ func (m *MBC3) Write(address uint16, value byte) {
 
 		offset := uint32(m.ramBank) * 0x2000
 		m.ramData[offset+uint32(address-0xA000)] = value
-		log.Printf("%04X(%d) = %d", offset+uint32(address-0xA000), m.ramBank, value)
 	}
 }
 

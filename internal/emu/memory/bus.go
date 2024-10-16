@@ -43,9 +43,9 @@ func (b *MemoryBus) LoadState(data []byte) {
 	r.Read(h)
 	b.hram.Fill(h)
 
-	w := b.hram.Bytes()
+	w := b.wram.Bytes()
 	r.Read(w)
-	b.hram.Fill(w)
+	b.wram.Fill(w)
 
 }
 
