@@ -2,6 +2,8 @@
 
 Well, it runs pokemon red
 
+![screenshot.png](./screenshot.png)
+
 ## Default keymap
 ```
 Up     -> W  
