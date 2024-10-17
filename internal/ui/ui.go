@@ -5,6 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	fyneapp "fyne.io/fyne/v2/app"
+	fynecanvas "fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/indeedhat/gb-emulator/internal/emu/config"
@@ -18,10 +19,15 @@ func NewFyneRenderer() (fyne.App, fyne.Window) {
 	win := runner.NewWindow("Emulator")
 	win.Resize(fyne.NewSize(640, 480))
 
+	im := fynecanvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 0, 0)))
+	im.FillMode = fynecanvas.ImageFillContain
+	win.SetContent(im)
+
 	canvas := win.Canvas()
 	app := &App{
 		window: win,
 		runner: runner,
+		frame:  im,
 	}
 	app.menu = NewMenu(runner, app)
 

@@ -1,12 +1,12 @@
 package ui
 
 import (
+	"image"
 	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
 	fynecanvas "fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
 	fynedialog "fyne.io/fyne/v2/dialog"
 
 	"github.com/sqweek/dialog"
@@ -24,6 +24,7 @@ type App struct {
 
 	runner fyne.App
 	window fyne.Window
+	frame  *fynecanvas.Image
 
 	menu *Menu
 
@@ -38,9 +39,8 @@ func (a *App) renderLoop() {
 		case <-a.done:
 			break
 		case img := <-a.ctx.FrameCh:
-			frame := fynecanvas.NewImageFromImage(generateImage(img))
-			frame.FillMode = fynecanvas.ImageFillContain
-			a.window.SetContent(frame)
+			a.frame.Image = generateImage(img)
+			a.frame.Refresh()
 		}
 	}
 }
@@ -133,7 +133,8 @@ func (a *App) handleStopEmulation() {
 		defer a.menu.TriggerEmuStop()
 
 		a.emu = nil
-		a.window.SetContent(container.NewWithoutLayout())
+		a.frame.Image = image.NewRGBA(image.Rect(0, 0, 0, 0))
+		a.frame.Refresh()
 	}
 }
 

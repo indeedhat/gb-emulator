@@ -25,7 +25,7 @@ make build
 - [x] Bank switching
 - [x] allow multiple state slots
 - [x] auto save state
-- [ ] fix screen flicker
+- [x] fix screen flicker
 - [ ] Sound
 - [ ] Window scroll (still work to do)
 

@@ -34,6 +34,11 @@ type Menu struct {
 		AutoSave *fyne.MenuItem
 	}
 
+	Window struct {
+		Root       *fyne.Menu
+		Fullscreen *fyne.MenuItem
+	}
+
 	app    *App
 	runner fyne.App
 }
@@ -47,11 +52,13 @@ func NewMenu(runner fyne.App, app *App) *Menu {
 	m.initStateMenu()
 	m.initEmulatorMenu()
 	m.initFileMenu()
+	m.initWindowMenu()
 
 	m.Root = fyne.NewMainMenu(
 		m.File.Root,
 		m.Emulator.Root,
 		m.State.Root,
+		m.Window.Root,
 	)
 
 	return m
@@ -227,6 +234,27 @@ func (m *Menu) initStateMenu() {
 	)
 
 	m.TriggerStateReload()
+}
+
+func (m *Menu) initWindowMenu() {
+	m.Window.Root = fyne.NewMenu("Window")
+
+	m.Window.Fullscreen = fyne.NewMenuItem("Fullscreen", func() {
+		current := m.app.window.FullScreen()
+		if current {
+			m.Window.Fullscreen.Label = "Fullscreen"
+		} else {
+			m.Window.Fullscreen.Label = "Exit Fullscreen"
+		}
+
+		m.app.window.SetFullScreen(!current)
+
+		m.Window.Root.Refresh()
+	})
+
+	m.Window.Root.Items = append(m.Window.Root.Items,
+		m.Window.Fullscreen,
+	)
 }
 
 func (m *Menu) statePath(i int) string {
