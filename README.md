@@ -2,24 +2,27 @@
 
 Well, it runs pokemon red
 
-## Keymap (Sorry its setup for dvorak)
+## Default keymap
 ```
-Up     -> Comma  
-Right  -> E  
-Down   -> O  
-Left   -> A  
-A      -> Enter  
-B      -> J  
-Start  -> Period  
-Select -> Quote  
+Up     -> W  
+Right  -> A  
+Down   -> S  
+Left   -> D  
+A      -> X  
+B      -> C  
+Start  -> Enter  
+Select -> Space  
 ```
 
 ## Usage
 ```
 make build
-./build/gb-emu ./roms/tetris.gb
+./build/gb-emu
 ```
 
+## Limitations
+- Currently only supports games using MBC1/3
+- Battery save does not work so you need to use save states
 
 ## TODO (Emulation)
 - [x] Bank switching
@@ -36,7 +39,7 @@ make build
     - [x] load state
     - [ ] pause emulation when a menu is open
     - [ ] prompt for state override?
-    - [ ] remap key binds
+    - [x] remap key binds
 - [ ] debug windows
     - [ ] tile maps
     - [ ] Cpu registers
