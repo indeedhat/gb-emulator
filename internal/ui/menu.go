@@ -35,8 +35,9 @@ type Menu struct {
 	}
 
 	Window struct {
-		Root       *fyne.Menu
-		Fullscreen *fyne.MenuItem
+		Root        *fyne.Menu
+		Fullscreen  *fyne.MenuItem
+		Preferences *fyne.MenuItem
 	}
 
 	app    *App
@@ -103,7 +104,7 @@ func (m *Menu) TriggerRecentReload(current ...string) {
 		m.updateRecentList(current[0])
 	}
 
-	items := m.runner.Preferences().StringList("recent-roms")
+	items := m.runner.Preferences().StringList(PrefRecentRomsList)
 	m.File.Recent.ChildMenu.Items = nil
 
 	if len(items) == 0 {
@@ -225,7 +226,7 @@ func (m *Menu) initStateMenu() {
 		m.State.AutoSave.Checked = m.app.handleAutosaveToggle()
 		m.TriggerStateReload()
 	})
-	m.State.AutoSave.Checked = m.runner.Preferences().Bool("auto-save-state")
+	m.State.AutoSave.Checked = m.runner.Preferences().Bool(PrefAutoSaveState)
 
 	m.State.Root.Items = append(m.State.Root.Items,
 		m.State.Load,
@@ -252,8 +253,14 @@ func (m *Menu) initWindowMenu() {
 		m.Window.Root.Refresh()
 	})
 
+	m.Window.Preferences = fyne.NewMenuItem("Preferences", func() {
+		p := NewPreferencesWindow(m.runner)
+		p.window.Show()
+	})
+
 	m.Window.Root.Items = append(m.Window.Root.Items,
 		m.Window.Fullscreen,
+		m.Window.Preferences,
 	)
 }
 
@@ -270,10 +277,15 @@ func (m *Menu) statePath(i int) string {
 }
 
 func (m *Menu) updateRecentList(path string) {
-	existing := m.runner.Preferences().StringList("recent-roms")
+	existing := m.runner.Preferences().StringList(PrefRecentRomsList)
 	existing = slices.DeleteFunc(existing, func(val string) bool {
 		return val == path
 	})
 
-	m.runner.Preferences().SetStringList("recent-roms", append([]string{path}, existing...))
+	listSize := m.runner.Preferences().IntWithFallback(PrefRecentRomsCount, PrefRecentRomsCountFallback)
+	if len(existing) > listSize {
+		existing = existing[:listSize]
+	}
+
+	m.runner.Preferences().SetStringList(PrefRecentRomsList, append([]string{path}, existing...))
 }

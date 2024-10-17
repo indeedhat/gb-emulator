@@ -46,13 +46,15 @@ func (a *App) renderLoop() {
 }
 
 func (a *App) autosaveLoop() {
-	ticker := time.NewTicker(30 * time.Second)
+	interval := a.runner.Preferences().IntWithFallback(PrefAutoSaveInterval, PrefAutoSaveIntervalFallback)
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+
 	for {
 		select {
 		case <-a.done:
 			break
 		case <-ticker.C:
-			if a.emu != nil && a.runner.Preferences().Bool("auto-save-state") {
+			if a.emu != nil && a.runner.Preferences().Bool(PrefAutoSaveState) {
 				a.handleSaveState(a.menu.statePath(10))()
 			}
 		}
@@ -100,8 +102,8 @@ func (a *App) handleLoadRom(filename string) func() {
 }
 
 func (a *App) handleAutosaveToggle() bool {
-	current := a.runner.Preferences().Bool("auto-save-state")
-	a.runner.Preferences().SetBool("auto-save-state", !current)
+	current := a.runner.Preferences().Bool(PrefAutoSaveState)
+	a.runner.Preferences().SetBool(PrefAutoSaveState, !current)
 	a.menu.TriggerStateReload()
 	return !current
 }
@@ -156,7 +158,7 @@ func (a *App) handleKeyUp(e *fyne.KeyEvent) {
 		return
 	}
 
-	code := mapKeyCode(e)
+	code := mapKeyCode(a.runner.Preferences(), e)
 	if code == enum.KeyUnknown {
 		return
 	}
@@ -172,7 +174,7 @@ func (a *App) handleKeyDown(e *fyne.KeyEvent) {
 		return
 	}
 
-	code := mapKeyCode(e)
+	code := mapKeyCode(a.runner.Preferences(), e)
 	if code == enum.KeyUnknown {
 		return
 	}

@@ -53,23 +53,23 @@ func generateImage(data []types.Pixel) *image.RGBA {
 	return img
 }
 
-func mapKeyCode(e *fyne.KeyEvent) enum.KeyCode {
+func mapKeyCode(p fyne.Preferences, e *fyne.KeyEvent) enum.KeyCode {
 	switch e.Name {
-	case fyne.KeyComma:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsUp, PrefControlsUpFallback)):
 		return enum.KeyUp
-	case fyne.KeyE:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsRight, PrefControlsRightFallback)):
 		return enum.KeyRight
-	case fyne.KeyO:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsDown, PrefControlsDownFallback)):
 		return enum.KeyDown
-	case fyne.KeyA:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsLeft, PrefControlsLeftFallback)):
 		return enum.KeyLeft
-	case fyne.KeyEnter, fyne.KeyReturn:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsA, PrefControlsAFallback)):
 		return enum.KeyA
-	case fyne.KeyJ:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsB, PrefControlsBFallback)):
 		return enum.KeyB
-	case fyne.KeyPeriod:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsStart, PrefControlsStartFallback)):
 		return enum.KeyStart
-	case fyne.KeyApostrophe:
+	case fyne.KeyName(p.StringWithFallback(PrefControlsSelect, PrefControlsSelectFallback)):
 		return enum.KeySelect
 	}
 
